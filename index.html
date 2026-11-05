@@ -82,11 +82,19 @@
       })
     });
 
-    const result = await response.json();
+    const responseText = await response.text();
+let result = {};
 
-    status.textContent = result.success
-      ? "ثبت‌نام با موفقیت انجام شد."
-      : "ثبت اطلاعات انجام نشد.";
+try {
+  result = JSON.parse(responseText);
+} catch {}
+
+if (response.ok && result.success) {
+  status.textContent = "ثبت‌نام با موفقیت انجام شد.";
+} else {
+  status.textContent =
+    `ثبت اطلاعات انجام نشد. کد پاسخ: ${response.status}؛ علت: ${result.error || responseText || "پاسخ خالی از سرور"}`;
+}
   } catch (error) {
     status.textContent = "خطا در ارتباط با سرور.";
   }
