@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ارتباط با کاربران</title>
+  <script src="https://developer.eitaa.com/eitaa-web-app.js"></script>
+  <style>
+    body {
+      font-family: Tahoma, sans-serif;
+      direction: rtl;
+      text-align: center;
+      padding: 35px 20px;
+      background: #f5f5f5;
+      color: #222;
+    }
+    .box {
+      max-width: 420px;
+      margin: auto;
+      padding: 25px;
+      background: white;
+      border-radius: 14px;
+    }
+    button {
+      padding: 13px 24px;
+      border: 0;
+      border-radius: 8px;
+      background: #168b55;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      line-height: 2;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>ارتباط با ما</h2>
+    <p>
+      در صورت تمایل، می‌توانید اجازه دریافت پیام خصوصی
+      از طرف این برنامه را صادر کنید.
+    </p>
+    <button id="allow">موافقت و ادامه</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const app = window.Eitaa?.WebApp;
+    const button = document.getElementById("allow");
+    const status = document.getElementById("status");
+
+    if (app) {
+      app.ready();
+      app.expand();
+    }
+
+    button.addEventListener("click", function () {
+      if (!app) {
+        status.textContent = "لطفاً برنامه را از داخل ایتا باز کنید.";
+        return;
+      }
+
+      app.requestWriteAccess(function (allowed) {
+        status.textContent = allowed
+          ? "اجازه دریافت شد."
+          : "اجازه‌ای صادر نشد.";
+      });
+    });
+  </script>
+</body>
+</html>
