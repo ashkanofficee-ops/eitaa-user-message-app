@@ -425,13 +425,13 @@
         </div>
       </div>
       <input type="search" class="customers-search" id="customersSearch"
-        placeholder="جست‌وجو با نام کاربری یا شناسه ایتا" aria-label="جست‌وجوی مشتریان">
+        placeholder="جست‌وجو با نام، نام کاربری یا شناسه ایتا" aria-label="جست‌وجوی مشتریان">
       <div class="customers-status" id="customersStatus">برای دریافت فهرست، روی به‌روزرسانی فهرست بزنید.</div>
       <div class="customers-table-wrap">
         <table class="customers-table">
-          <thead><tr><th>ردیف</th><th>نام کاربری</th><th>شناسه ایتا</th><th>تاریخ ثبت‌نام</th></tr></thead>
+          <thead><tr><th>ردیف</th><th>نام مشتری</th><th>نام کاربری</th><th>شناسه ایتا</th><th>تاریخ ثبت‌نام</th></tr></thead>
           <tbody id="customersTableBody">
-            <tr><td colspan="4" class="customers-empty">هنوز فهرستی دریافت نشده است.</td></tr>
+            <tr><td colspan="5" class="customers-empty">هنوز فهرستی دریافت نشده است.</td></tr>
           </tbody>
         </table>
       </div>
@@ -697,15 +697,19 @@
     function renderCustomers() {
       const query = customersSearch.value.trim().toLowerCase();
       const filtered = customersData.filter(customer => {
+        const firstName = String(customer.first_name || "").toLowerCase();
+        const lastName = String(customer.last_name || "").toLowerCase();
+        const fullName = `${firstName} ${lastName}`.trim();
         const username = String(customer.username || "").toLowerCase();
         const userId = String(customer.eitaa_user_id || "").toLowerCase();
-        return username.includes(query) || userId.includes(query);
+        return fullName.includes(query) || firstName.includes(query) ||
+          lastName.includes(query) || username.includes(query) || userId.includes(query);
       });
 
       customersTableBody.innerHTML = "";
       if (filtered.length === 0) {
         customersTableBody.innerHTML =
-          '<tr><td colspan="4" class="customers-empty">مشتری‌ای با این مشخصات پیدا نشد.</td></tr>';
+          '<tr><td colspan="5" class="customers-empty">مشتری‌ای با این مشخصات پیدا نشد.</td></tr>';
         return;
       }
 
@@ -713,6 +717,7 @@
         const row = document.createElement("tr");
         [
           String(index + 1),
+          [customer.first_name, customer.last_name].filter(Boolean).join(" ") || "—",
           customer.username ? "@" + customer.username : "—",
           customer.eitaa_user_id || "—",
           formatCustomerDate(customer.created_at)
