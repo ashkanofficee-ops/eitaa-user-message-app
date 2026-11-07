@@ -151,6 +151,73 @@
       margin-top: 25px;
     }
 
+    .login-screen {
+      width: min(420px, 92%);
+      margin: 100px auto;
+      background: #FFFFFF;
+      border: 1px solid #DCE6E0;
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 10px 35px rgba(18, 61, 50, 0.08);
+    }
+
+    .login-screen h2 {
+      color: #123D32;
+      margin-bottom: 12px;
+    }
+
+    .login-screen p {
+      color: #68776F;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+
+    .login-screen input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #DCE6E0;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .login-screen button,
+    .logout-button {
+      background: #123D32;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 22px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .login-screen button {
+      width: 100%;
+    }
+
+    .login-screen button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .login-error {
+      color: #C62828;
+      font-size: 13px;
+      margin-top: 15px;
+    }
+
+    .logout-button {
+      font-size: 12px;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
     @media (max-width: 800px) {
       .dashboard {
         grid-template-columns: repeat(2, 1fr);
@@ -178,20 +245,52 @@
       .stats {
         padding: 17px;
       }
+
+      .login-screen {
+        margin: 60px auto;
+        padding: 24px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <main class="container">
+  <section class="login-screen" id="loginScreen">
+    <h2>ورود به پنل مدیریت</h2>
+    <p>برای ورود، رمز مدیریت را وارد کنید.</p>
+
+    <form id="loginForm">
+      <input
+        type="password"
+        id="adminPassword"
+        placeholder="رمز عبور مدیریت"
+        required
+        autocomplete="current-password"
+      >
+
+      <button type="submit" id="loginButton">
+        ورود به سامانه
+      </button>
+
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </section>
+
+  <main class="container" id="adminDashboard" hidden>
 
     <header class="header">
       <div>
         <h1>پنل مدیریت</h1>
         <p>به سامانه مدیریت کافی نت اشکان خوش آمدید</p>
       </div>
-      <div class="header-icon">◈</div>
+
+      <div style="display:flex;align-items:center;gap:15px;">
+        <div class="header-icon">◈</div>
+        <button class="logout-button" id="logoutButton">
+          خروج از حساب
+        </button>
+      </div>
     </header>
 
     <h2 class="section-title">بخش‌های مدیریتی</h2>
@@ -276,12 +375,133 @@
   </main>
 
   <script>
+    const SUPABASE_URL = "https://iusqlowrbgihwctfqryt.supabase.co";
+
+    // کلید Publishable پروژه را در این قسمت قرار بده.
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t_WLaQBmr1Y3hLswctQ1lw_6mIpwmgo";
+
+    const loginScreen = document.getElementById("loginScreen");
+    const adminDashboard = document.getElementById("adminDashboard");
+    const loginForm = document.getElementById("loginForm");
+    const loginButton = document.getElementById("loginButton");
+    const loginError = document.getElementById("loginError");
+
+    let sessionTimer = null;
+
+    function showDashboard() {
+      loginScreen.hidden = true;
+      adminDashboard.hidden = false;
+    }
+
+    function showLogin() {
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+        sessionTimer = null;
+      }
+
+      sessionStorage.removeItem("admin_token");
+      sessionStorage.removeItem("admin_expires_at");
+
+      adminDashboard.hidden = true;
+      loginScreen.hidden = false;
+    }
+
+    function startSessionTimer(expiresAt) {
+      if (sessionTimer) {
+        clearTimeout(sessionTimer);
+      }
+
+      const remainingTime = expiresAt - Date.now();
+
+      if (remainingTime <= 0) {
+        showLogin();
+        return;
+      }
+
+      sessionTimer = setTimeout(showLogin, remainingTime);
+    }
+
+    function checkSession() {
+      const token = sessionStorage.getItem("admin_token");
+
+      const expiresAt = Number(
+        sessionStorage.getItem("admin_expires_at")
+      );
+
+      if (token && expiresAt > Date.now()) {
+        showDashboard();
+        startSessionTimer(expiresAt);
+      } else {
+        showLogin();
+      }
+    }
+
+    loginForm.addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const password = document.getElementById("adminPassword").value;
+
+      loginError.textContent = "";
+      loginButton.disabled = true;
+      loginButton.textContent = "در حال بررسی...";
+
+      try {
+        const response = await fetch(
+          SUPABASE_URL + "/functions/v1/admin-auth",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": SUPABASE_PUBLISHABLE_KEY
+            },
+            body: JSON.stringify({ password })
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success || !result.token) {
+          throw new Error(
+            result.error || "ورود ناموفق بود."
+          );
+        }
+
+        const expiresAt = result.expires_at * 1000;
+
+        sessionStorage.setItem("admin_token", result.token);
+
+        sessionStorage.setItem(
+          "admin_expires_at",
+          String(expiresAt)
+        );
+
+        document.getElementById("adminPassword").value = "";
+
+        showDashboard();
+        startSessionTimer(expiresAt);
+
+      } catch (error) {
+        loginError.textContent =
+          error.message || "ارتباط با سرور برقرار نشد.";
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = "ورود به سامانه";
+      }
+    });
+
+    document.getElementById("logoutButton").addEventListener(
+      "click",
+      showLogin
+    );
+
     document.querySelectorAll(".card").forEach(card => {
       card.addEventListener("click", function(event) {
         event.preventDefault();
         alert("این بخش در مراحل بعدی فعال خواهد شد.");
       });
     });
+
+    checkSession();
   </script>
 
 </body>
