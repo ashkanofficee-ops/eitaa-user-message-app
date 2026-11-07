@@ -151,6 +151,20 @@
       margin-top: 25px;
     }
 
+
+    .customers-panel { background:#FFFFFF; border:1px solid #DCE6E0; border-radius:17px; padding:22px; margin-bottom:28px; }
+    .customers-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+    .customers-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .customers-actions button { background:#123D32; color:white; border:none; border-radius:10px; padding:10px 15px; font-family:inherit; cursor:pointer; }
+    .customers-actions button.secondary { background:#EAF2EE; color:#123D32; }
+    .customers-search { width:100%; max-width:340px; padding:12px; border:1px solid #DCE6E0; border-radius:10px; font-family:inherit; margin-bottom:16px; }
+    .customers-table-wrap { width:100%; overflow-x:auto; }
+    .customers-table { width:100%; border-collapse:collapse; min-width:560px; text-align:right; }
+    .customers-table th,.customers-table td { padding:12px 10px; border-bottom:1px solid #E7EEE9; font-size:13px; }
+    .customers-table th { color:#123D32; background:#F4F7F5; font-weight:700; }
+    .customers-status { color:#68776F; font-size:13px; margin:10px 0; }
+    .customers-empty { text-align:center; color:#68776F; padding:25px 10px; }
+
     .login-screen {
       width: min(420px, 92%);
       margin: 100px auto;
@@ -347,6 +361,28 @@
 
     </section>
 
+
+    <section class="customers-panel" id="customersPanel" hidden>
+      <div class="customers-toolbar">
+        <h2 class="section-title" style="margin-bottom:0;">مدیریت مشتریان</h2>
+        <div class="customers-actions">
+          <button type="button" class="secondary" id="backToDashboard">بازگشت</button>
+          <button type="button" id="refreshCustomers">به‌روزرسانی فهرست</button>
+        </div>
+      </div>
+      <input type="search" class="customers-search" id="customersSearch"
+        placeholder="جست‌وجو با نام کاربری یا شناسه ایتا" aria-label="جست‌وجوی مشتریان">
+      <div class="customers-status" id="customersStatus">برای دریافت فهرست، روی به‌روزرسانی فهرست بزنید.</div>
+      <div class="customers-table-wrap">
+        <table class="customers-table">
+          <thead><tr><th>ردیف</th><th>نام کاربری</th><th>شناسه ایتا</th><th>تاریخ ثبت‌نام</th></tr></thead>
+          <tbody id="customersTableBody">
+            <tr><td colspan="4" class="customers-empty">هنوز فهرستی دریافت نشده است.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="stats">
       <h2 class="section-title">آمار کلی سامانه</h2>
 
@@ -494,12 +530,112 @@
       showLogin
     );
 
+    const customersPanel = document.getElementById("customersPanel");
+    const customersTableBody = document.getElementById("customersTableBody");
+    const customersStatus = document.getElementById("customersStatus");
+    const customersSearch = document.getElementById("customersSearch");
+    let customersData = [];
+
+    function formatCustomerDate(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "—";
+      return new Intl.DateTimeFormat("fa-IR", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      }).format(date);
+    }
+
+    function renderCustomers() {
+      const query = customersSearch.value.trim().toLowerCase();
+      const filtered = customersData.filter(customer => {
+        const username = String(customer.username || "").toLowerCase();
+        const userId = String(customer.eitaa_user_id || "").toLowerCase();
+        return username.includes(query) || userId.includes(query);
+      });
+
+      customersTableBody.innerHTML = "";
+      if (filtered.length === 0) {
+        customersTableBody.innerHTML =
+          '<tr><td colspan="4" class="customers-empty">مشتری‌ای با این مشخصات پیدا نشد.</td></tr>';
+        return;
+      }
+
+      filtered.forEach((customer, index) => {
+        const row = document.createElement("tr");
+        [
+          String(index + 1),
+          customer.username ? "@" + customer.username : "—",
+          customer.eitaa_user_id || "—",
+          formatCustomerDate(customer.created_at)
+        ].forEach(value => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        });
+        customersTableBody.appendChild(row);
+      });
+    }
+
+    async function loadCustomers() {
+      const token = sessionStorage.getItem("admin_token");
+      if (!token) {
+        showLogin();
+        return;
+      }
+
+      customersStatus.textContent = "در حال دریافت فهرست مشتریان...";
+      customersTableBody.innerHTML = "";
+
+      try {
+        const response = await fetch(
+          SUPABASE_URL + "/functions/v1/admin-subscribers",
+          {
+            method: "GET",
+            headers: {
+              "apikey": SUPABASE_PUBLISHABLE_KEY,
+              "Authorization": "Bearer " + token
+            }
+          }
+        );
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "دریافت فهرست مشتریان ناموفق بود.");
+        }
+
+        customersData = Array.isArray(result.subscribers) ? result.subscribers : [];
+        document.getElementById("customerCount").textContent =
+          result.total ?? customersData.length;
+        customersStatus.textContent =
+          "تعداد مشتریان ثبت‌نام‌شده: " + (result.total ?? customersData.length);
+        renderCustomers();
+      } catch (error) {
+        customersStatus.textContent = error.message || "ارتباط با سرور برقرار نشد.";
+        customersTableBody.innerHTML =
+          '<tr><td colspan="4" class="customers-empty">بارگذاری فهرست با خطا مواجه شد.</td></tr>';
+      }
+    }
+
     document.querySelectorAll(".card").forEach(card => {
       card.addEventListener("click", function(event) {
         event.preventDefault();
+        if (this.dataset.section === "customers") {
+          customersPanel.hidden = false;
+          customersPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+          loadCustomers();
+          return;
+        }
         alert("این بخش در مراحل بعدی فعال خواهد شد.");
       });
     });
+
+    document.getElementById("refreshCustomers").addEventListener("click", loadCustomers);
+    document.getElementById("backToDashboard").addEventListener("click", function() {
+      customersPanel.hidden = true;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    customersSearch.addEventListener("input", renderCustomers);
 
     checkSession();
   </script>
