@@ -198,6 +198,21 @@
     .order-description { max-width:220px; white-space:normal; overflow-wrap:anywhere; }
     .order-details-button { background:#EAF2EE; color:#123D32; border:0; border-radius:9px; padding:7px 10px; font-family:inherit; cursor:pointer; font-size:12px; margin:2px; }
     .order-details-panel { margin-top:18px; padding:18px; border:1px solid #DCE6E0; border-radius:13px; background:#F8FAF9; }
+    .payments-panel { background:#FFFFFF; border:1px solid #DCE6E0; border-radius:17px; padding:22px; margin-bottom:28px; }
+    .payments-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+    .payments-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .payments-actions button,.payment-save-button { background:#123D32; color:white; border:0; border-radius:9px; padding:10px 14px; font-family:inherit; cursor:pointer; }
+    .payments-actions button.secondary { background:#EAF2EE; color:#123D32; }
+    .payments-table-wrap { width:100%; overflow-x:auto; }
+    .payments-table { width:100%; border-collapse:collapse; min-width:1050px; text-align:right; }
+    .payments-table th,.payments-table td { padding:11px 9px; border-bottom:1px solid #E7EEE9; font-size:12px; vertical-align:middle; }
+    .payments-table th { color:#123D32; background:#F4F7F5; font-weight:700; }
+    .payments-table select,.payments-table textarea { min-width:130px; padding:8px; border:1px solid #DCE6E0; border-radius:8px; font-family:inherit; font-size:12px; }
+    .payments-table textarea { min-width:150px; min-height:48px; resize:vertical; }
+    .payment-save-button { padding:7px 10px; font-size:12px; }
+    .payment-receipt-link { color:#123D32; font-weight:700; text-decoration:underline; }
+    .payments-status { color:#68776F; font-size:13px; margin:10px 0; }
+
     .order-details-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
     .order-detail-item { padding:11px; background:#FFFFFF; border:1px solid #E7EEE9; border-radius:9px; overflow-wrap:anywhere; }
     .order-detail-label { display:block; color:#68776F; font-size:12px; margin-bottom:5px; }
@@ -490,6 +505,29 @@
           </div>
         </div>
         <div class="order-details-grid" id="orderDetailsGrid"></div>
+      </div>
+    </section>
+
+    <section class="payments-panel" id="paymentsPanel" hidden>
+      <div class="payments-toolbar">
+        <h2 class="section-title" style="margin-bottom:0;">مدیریت پرداخت‌ها</h2>
+        <div class="payments-actions">
+          <button type="button" class="secondary" id="backFromPayments">بازگشت</button>
+          <button type="button" id="refreshPayments">به‌روزرسانی پرداخت‌ها</button>
+        </div>
+      </div>
+      <div class="payments-status" id="paymentsStatus">در حال آماده‌سازی فهرست پرداخت‌ها...</div>
+      <div class="payments-table-wrap">
+        <table class="payments-table">
+          <thead><tr>
+            <th>شناسه پرداخت</th><th>شناسه سفارش</th><th>شناسه مشتری ایتا</th>
+            <th>مبلغ (تومان)</th><th>رسید پرداخت</th><th>تاریخ ثبت</th>
+            <th>وضعیت پرداخت</th><th>یادداشت مدیر</th><th>عملیات</th>
+          </tr></thead>
+          <tbody id="paymentsTableBody">
+            <tr><td colspan="9" class="customers-empty">هنوز پرداختی دریافت نشده است.</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -1134,6 +1172,152 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
+    const paymentsPanel = document.getElementById("paymentsPanel");
+    const paymentsStatus = document.getElementById("paymentsStatus");
+    const paymentsTableBody = document.getElementById("paymentsTableBody");
+    let paymentsData = [];
+
+    const paymentStatusLabels = {
+      pending: "در انتظار بررسی",
+      approved: "تأیید شده",
+      rejected: "رد شده"
+    };
+    const allowedPaymentStatuses = ["pending", "approved", "rejected"];
+
+    async function callAdminPayments(payload) {
+      const token = sessionStorage.getItem("admin_token");
+      if (!token) {
+        showLogin();
+        throw new Error("نشست مدیریت منقضی شده است. دوباره وارد شوید.");
+      }
+
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "درخواست مدیریت پرداخت‌ها ناموفق بود.");
+      }
+      return result;
+    }
+
+    function renderPayments() {
+      paymentsTableBody.innerHTML = "";
+      if (paymentsData.length === 0) {
+        paymentsTableBody.innerHTML =
+          '<tr><td colspan="9" class="customers-empty">هنوز پرداختی ثبت نشده است.</td></tr>';
+        return;
+      }
+
+      paymentsData.forEach(payment => {
+        const row = document.createElement("tr");
+        const addCell = value => {
+          const cell = document.createElement("td");
+          cell.textContent = value == null || value === "" ? "—" : String(value);
+          row.appendChild(cell);
+          return cell;
+        };
+
+        addCell(payment.id);
+        addCell(payment.order_id);
+        addCell(payment.eitaa_user_id);
+        addCell(payment.amount == null ? "—" : Number(payment.amount).toLocaleString("fa-IR"));
+
+        const receiptCell = document.createElement("td");
+        if (payment.receipt_url) {
+          const link = document.createElement("a");
+          link.href = payment.receipt_url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.className = "payment-receipt-link";
+          link.textContent = "مشاهده رسید";
+          receiptCell.appendChild(link);
+        } else {
+          receiptCell.textContent = "بدون رسید";
+        }
+        row.appendChild(receiptCell);
+        addCell(formatOrderDate(payment.created_at));
+
+        const statusCell = document.createElement("td");
+        const statusSelect = document.createElement("select");
+        statusSelect.setAttribute("aria-label", "وضعیت پرداخت " + payment.id);
+        allowedPaymentStatuses.forEach(status => {
+          const option = document.createElement("option");
+          option.value = status;
+          option.textContent = paymentStatusLabels[status];
+          statusSelect.appendChild(option);
+        });
+        statusSelect.value = allowedPaymentStatuses.includes(payment.status) ? payment.status : "pending";
+        statusCell.appendChild(statusSelect);
+        row.appendChild(statusCell);
+
+        const noteCell = document.createElement("td");
+        const noteInput = document.createElement("textarea");
+        noteInput.maxLength = 2000;
+        noteInput.placeholder = "یادداشت مدیر";
+        noteInput.value = payment.admin_note || "";
+        noteCell.appendChild(noteInput);
+        row.appendChild(noteCell);
+
+        const actionCell = document.createElement("td");
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.className = "payment-save-button";
+        saveButton.textContent = "ذخیره";
+        saveButton.addEventListener("click", async () => {
+          saveButton.disabled = true;
+          saveButton.textContent = "در حال ذخیره...";
+          try {
+            await callAdminPayments({
+              action: "update",
+              id: payment.id,
+              status: statusSelect.value,
+              admin_note: noteInput.value.trim()
+            });
+            payment.status = statusSelect.value;
+            payment.admin_note = noteInput.value.trim();
+            paymentsStatus.textContent = "اطلاعات پرداخت شماره " + payment.id + " با موفقیت به‌روزرسانی شد.";
+          } catch (error) {
+            paymentsStatus.textContent = error.message || "به‌روزرسانی پرداخت ناموفق بود.";
+          } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = "ذخیره";
+          }
+        });
+        actionCell.appendChild(saveButton);
+        row.appendChild(actionCell);
+        paymentsTableBody.appendChild(row);
+      });
+    }
+
+    async function loadPayments() {
+      paymentsStatus.textContent = "در حال دریافت پرداخت‌ها...";
+      paymentsTableBody.innerHTML = "";
+      try {
+        const result = await callAdminPayments({ action: "list" });
+        paymentsData = Array.isArray(result.payments) ? result.payments : [];
+        paymentsStatus.textContent = "تعداد پرداخت‌های ثبت‌شده: " + (result.total ?? paymentsData.length);
+        renderPayments();
+      } catch (error) {
+        paymentsStatus.textContent = error.message || "دریافت پرداخت‌ها ناموفق بود.";
+        paymentsTableBody.innerHTML =
+          '<tr><td colspan="9" class="customers-empty">بارگذاری پرداخت‌ها با خطا مواجه شد.</td></tr>';
+      }
+    }
+
+    document.getElementById("refreshPayments").addEventListener("click", loadPayments);
+    document.getElementById("backFromPayments").addEventListener("click", function() {
+      paymentsPanel.hidden = true;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
     document.querySelectorAll(".card").forEach(card => {
       card.addEventListener("click", function(event) {
         event.preventDefault();
@@ -1153,6 +1337,12 @@
           ordersPanel.hidden = false;
           ordersPanel.scrollIntoView({ behavior: "smooth", block: "start" });
           loadOrders();
+          return;
+        }
+        if (this.dataset.section === "payments") {
+          paymentsPanel.hidden = false;
+          paymentsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+          loadPayments();
           return;
         }
         alert("این بخش در مراحل بعدی فعال خواهد شد.");
