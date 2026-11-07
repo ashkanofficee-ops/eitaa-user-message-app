@@ -196,6 +196,13 @@
     .order-update-button { padding:7px 10px; font-size:12px; }
     .order-receipt-link { color:#176B50; text-decoration:underline; white-space:nowrap; }
     .order-description { max-width:220px; white-space:normal; overflow-wrap:anywhere; }
+    .order-details-button { background:#EAF2EE; color:#123D32; border:0; border-radius:9px; padding:7px 10px; font-family:inherit; cursor:pointer; font-size:12px; margin:2px; }
+    .order-details-panel { margin-top:18px; padding:18px; border:1px solid #DCE6E0; border-radius:13px; background:#F8FAF9; }
+    .order-details-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .order-detail-item { padding:11px; background:#FFFFFF; border:1px solid #E7EEE9; border-radius:9px; overflow-wrap:anywhere; }
+    .order-detail-label { display:block; color:#68776F; font-size:12px; margin-bottom:5px; }
+    .order-detail-value { color:#123D32; font-size:13px; font-weight:600; white-space:pre-wrap; }
+    @media (max-width:600px) { .order-details-grid { grid-template-columns:1fr; } }
 
     .login-screen {
       width: min(420px, 92%);
@@ -473,6 +480,16 @@
             <tr><td colspan="9" class="customers-empty">هنوز سفارشی دریافت نشده است.</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="order-details-panel" id="orderDetailsPanel" hidden>
+        <div class="orders-toolbar">
+          <h3 class="section-title" style="margin-bottom:0;" id="orderDetailsTitle">جزئیات سفارش</h3>
+          <div class="orders-actions">
+            <button type="button" class="secondary" id="closeOrderDetails">بستن جزئیات</button>
+          </div>
+        </div>
+        <div class="order-details-grid" id="orderDetailsGrid"></div>
       </div>
     </section>
 
@@ -869,6 +886,70 @@
     const ordersTableBody = document.getElementById("ordersTableBody");
     let ordersData = [];
 
+    const orderDetailsPanel = document.getElementById("orderDetailsPanel");
+    const orderDetailsGrid = document.getElementById("orderDetailsGrid");
+    const orderDetailsTitle = document.getElementById("orderDetailsTitle");
+
+    function showOrderDetails(order) {
+      orderDetailsTitle.textContent = "جزئیات سفارش شماره " + order.id;
+      orderDetailsGrid.innerHTML = "";
+
+      const details = [
+        ["شناسه سفارش", order.id],
+        ["شناسه مشتری ایتا", order.eitaa_user_id],
+        ["شناسه خدمت", order.service_id],
+        ["نام خدمت", order.service_name],
+        ["توضیحات", order.description],
+        ["مبلغ (تومان)", order.price == null ? "—" : Number(order.price).toLocaleString("fa-IR")],
+        ["وضعیت سفارش", orderStatusLabels[order.status] || order.status],
+        ["تاریخ ثبت", formatOrderDate(order.created_at)],
+        ["آخرین به‌روزرسانی", formatOrderDate(order.updated_at)]
+      ];
+
+      details.forEach(([label, value]) => {
+        const item = document.createElement("div");
+        item.className = "order-detail-item";
+
+        const labelElement = document.createElement("span");
+        labelElement.className = "order-detail-label";
+        labelElement.textContent = label;
+
+        const valueElement = document.createElement("span");
+        valueElement.className = "order-detail-value";
+        valueElement.textContent = value == null || value === "" ? "—" : String(value);
+
+        item.appendChild(labelElement);
+        item.appendChild(valueElement);
+        orderDetailsGrid.appendChild(item);
+      });
+
+      const receiptItem = document.createElement("div");
+      receiptItem.className = "order-detail-item";
+      const receiptLabel = document.createElement("span");
+      receiptLabel.className = "order-detail-label";
+      receiptLabel.textContent = "رسید پرداخت";
+      receiptItem.appendChild(receiptLabel);
+
+      if (order.receipt_url) {
+        const receiptLink = document.createElement("a");
+        receiptLink.href = order.receipt_url;
+        receiptLink.target = "_blank";
+        receiptLink.rel = "noopener noreferrer";
+        receiptLink.className = "order-receipt-link";
+        receiptLink.textContent = "مشاهده رسید پرداخت";
+        receiptItem.appendChild(receiptLink);
+      } else {
+        const receiptValue = document.createElement("span");
+        receiptValue.className = "order-detail-value";
+        receiptValue.textContent = "رسیدی ثبت نشده است.";
+        receiptItem.appendChild(receiptValue);
+      }
+
+      orderDetailsGrid.appendChild(receiptItem);
+      orderDetailsPanel.hidden = false;
+      orderDetailsPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
     const orderStatusLabels = {
       pending: "در انتظار بررسی",
       awaiting_payment: "در انتظار پرداخت",
@@ -1010,6 +1091,14 @@
           }
         });
         actionCell.appendChild(updateButton);
+
+        const detailsButton = document.createElement("button");
+        detailsButton.type = "button";
+        detailsButton.className = "order-details-button";
+        detailsButton.textContent = "جزئیات";
+        detailsButton.addEventListener("click", () => showOrderDetails(order));
+        actionCell.appendChild(detailsButton);
+
         row.appendChild(actionCell);
 
         ordersTableBody.appendChild(row);
@@ -1036,7 +1125,11 @@
     }
 
     document.getElementById("refreshOrders").addEventListener("click", loadOrders);
+    document.getElementById("closeOrderDetails").addEventListener("click", function() {
+      orderDetailsPanel.hidden = true;
+    });
     document.getElementById("backFromOrders").addEventListener("click", function() {
+      orderDetailsPanel.hidden = true;
       ordersPanel.hidden = true;
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
