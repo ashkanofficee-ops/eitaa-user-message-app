@@ -165,6 +165,22 @@
     .customers-status { color:#68776F; font-size:13px; margin:10px 0; }
     .customers-empty { text-align:center; color:#68776F; padding:25px 10px; }
 
+    .services-panel { background:#FFFFFF; border:1px solid #DCE6E0; border-radius:17px; padding:22px; margin-bottom:28px; }
+    .services-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0; }
+    .services-form input,.services-form textarea { width:100%; padding:12px; border:1px solid #DCE6E0; border-radius:10px; font-family:inherit; font-size:13px; }
+    .services-form textarea { grid-column:1/-1; min-height:75px; resize:vertical; }
+    .services-form button,.services-actions button,.service-row-button { background:#123D32; color:white; border:0; border-radius:9px; padding:10px 14px; font-family:inherit; cursor:pointer; }
+    .services-form button { justify-self:start; }
+    .services-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .services-actions button.secondary,.service-row-button.secondary { background:#EAF2EE; color:#123D32; }
+    .services-table-wrap { width:100%; overflow-x:auto; }
+    .services-table { width:100%; border-collapse:collapse; min-width:650px; text-align:right; }
+    .services-table th,.services-table td { padding:12px 10px; border-bottom:1px solid #E7EEE9; font-size:13px; vertical-align:middle; }
+    .services-table th { color:#123D32; background:#F4F7F5; font-weight:700; }
+    .services-status { color:#68776F; font-size:13px; margin:10px 0; }
+    .service-row-button { margin:2px; padding:7px 10px; font-size:12px; }
+    @media (max-width:600px) { .services-form { grid-template-columns:1fr; } .services-form textarea { grid-column:auto; } }
+
     .login-screen {
       width: min(420px, 92%);
       margin: 100px auto;
@@ -383,6 +399,34 @@
       </div>
     </section>
 
+
+    <section class="services-panel" id="servicesPanel" hidden>
+      <div class="customers-toolbar">
+        <h2 class="section-title" style="margin-bottom:0;">مدیریت خدمات</h2>
+        <div class="services-actions">
+          <button type="button" class="secondary" id="backFromServices">بازگشت</button>
+          <button type="button" id="refreshServices">به‌روزرسانی فهرست</button>
+        </div>
+      </div>
+
+      <form class="services-form" id="serviceForm">
+        <input type="text" id="serviceName" maxlength="200" placeholder="نام خدمت" required>
+        <input type="number" id="servicePrice" min="0" step="1" placeholder="قیمت به تومان" required>
+        <textarea id="serviceDescription" maxlength="2000" placeholder="توضیحات خدمت (اختیاری)"></textarea>
+        <button type="submit" id="saveServiceButton">افزودن خدمت</button>
+        <button type="button" class="secondary" id="cancelServiceEdit" hidden>لغو ویرایش</button>
+      </form>
+
+      <div class="services-status" id="servicesStatus">در حال آماده‌سازی فهرست خدمات...</div>
+      <div class="services-table-wrap">
+        <table class="services-table">
+          <thead><tr><th>ردیف</th><th>نام خدمت</th><th>توضیحات</th><th>قیمت (تومان)</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+          <tbody id="servicesTableBody">
+            <tr><td colspan="6" class="customers-empty">هنوز فهرستی دریافت نشده است.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
     <section class="stats">
       <h2 class="section-title">آمار کلی سامانه</h2>
 
@@ -617,6 +661,159 @@
       }
     }
 
+
+    const servicesPanel = document.getElementById("servicesPanel");
+    const servicesStatus = document.getElementById("servicesStatus");
+    const servicesTableBody = document.getElementById("servicesTableBody");
+    const serviceForm = document.getElementById("serviceForm");
+    const serviceName = document.getElementById("serviceName");
+    const servicePrice = document.getElementById("servicePrice");
+    const serviceDescription = document.getElementById("serviceDescription");
+    const saveServiceButton = document.getElementById("saveServiceButton");
+    const cancelServiceEdit = document.getElementById("cancelServiceEdit");
+    let servicesData = [];
+    let editingServiceId = null;
+
+    async function callAdminServices(payload) {
+      const token = sessionStorage.getItem("admin_token");
+      if (!token) {
+        showLogin();
+        throw new Error("نشست مدیریت منقضی شده است. دوباره وارد شوید.");
+      }
+
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-services", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "درخواست مدیریت خدمات ناموفق بود.");
+      }
+      return result;
+    }
+
+    function resetServiceForm() {
+      editingServiceId = null;
+      serviceForm.reset();
+      saveServiceButton.textContent = "افزودن خدمت";
+      cancelServiceEdit.hidden = true;
+    }
+
+    function renderServices() {
+      servicesTableBody.innerHTML = "";
+      if (servicesData.length === 0) {
+        servicesTableBody.innerHTML = '<tr><td colspan="6" class="customers-empty">هنوز خدمتی ثبت نشده است.</td></tr>';
+        return;
+      }
+
+      servicesData.forEach((service, index) => {
+        const row = document.createElement("tr");
+        const values = [
+          String(index + 1),
+          service.name || "—",
+          service.description || "—",
+          Number(service.price || 0).toLocaleString("fa-IR"),
+          service.is_active ? "فعال" : "غیرفعال"
+        ];
+
+        values.forEach(value => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        });
+
+        const actionsCell = document.createElement("td");
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "service-row-button";
+        editButton.textContent = "ویرایش";
+        editButton.addEventListener("click", () => {
+          editingServiceId = service.id;
+          serviceName.value = service.name || "";
+          servicePrice.value = service.price ?? "";
+          serviceDescription.value = service.description || "";
+          saveServiceButton.textContent = "ذخیره تغییرات";
+          cancelServiceEdit.hidden = false;
+          serviceForm.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+
+        const statusButton = document.createElement("button");
+        statusButton.type = "button";
+        statusButton.className = "service-row-button secondary";
+        statusButton.textContent = service.is_active ? "غیرفعال‌کردن" : "فعال‌کردن";
+        statusButton.addEventListener("click", async () => {
+          statusButton.disabled = true;
+          try {
+            await callAdminServices({ action: "update", id: service.id, is_active: !service.is_active });
+            await loadServices();
+          } catch (error) {
+            servicesStatus.textContent = error.message || "تغییر وضعیت خدمت ناموفق بود.";
+            statusButton.disabled = false;
+          }
+        });
+
+        actionsCell.append(editButton, statusButton);
+        row.appendChild(actionsCell);
+        servicesTableBody.appendChild(row);
+      });
+    }
+
+    async function loadServices() {
+      servicesStatus.textContent = "در حال دریافت فهرست خدمات...";
+      servicesTableBody.innerHTML = "";
+      try {
+        const result = await callAdminServices({ action: "list" });
+        servicesData = Array.isArray(result.services) ? result.services : [];
+        servicesStatus.textContent = "تعداد خدمات ثبت‌شده: " + (result.total ?? servicesData.length);
+        renderServices();
+      } catch (error) {
+        servicesStatus.textContent = error.message || "دریافت فهرست خدمات ناموفق بود.";
+        servicesTableBody.innerHTML = '<tr><td colspan="6" class="customers-empty">بارگذاری فهرست با خطا مواجه شد.</td></tr>';
+      }
+    }
+
+    serviceForm.addEventListener("submit", async function(event) {
+      event.preventDefault();
+      const name = serviceName.value.trim();
+      const price = Number(servicePrice.value);
+      if (!name || !Number.isFinite(price) || price < 0) {
+        servicesStatus.textContent = "لطفاً نام و قیمت معتبر وارد کنید.";
+        return;
+      }
+
+      saveServiceButton.disabled = true;
+      try {
+        const payload = {
+          action: editingServiceId === null ? "create" : "update",
+          name,
+          price,
+          description: serviceDescription.value.trim()
+        };
+        if (editingServiceId !== null) payload.id = editingServiceId;
+        await callAdminServices(payload);
+        resetServiceForm();
+        await loadServices();
+        servicesStatus.textContent = "اطلاعات خدمت با موفقیت ذخیره شد.";
+      } catch (error) {
+        servicesStatus.textContent = error.message || "ذخیره خدمت ناموفق بود.";
+      } finally {
+        saveServiceButton.disabled = false;
+      }
+    });
+
+    document.getElementById("refreshServices").addEventListener("click", loadServices);
+    document.getElementById("cancelServiceEdit").addEventListener("click", resetServiceForm);
+    document.getElementById("backFromServices").addEventListener("click", function() {
+      servicesPanel.hidden = true;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
     document.querySelectorAll(".card").forEach(card => {
       card.addEventListener("click", function(event) {
         event.preventDefault();
@@ -624,6 +821,12 @@
           customersPanel.hidden = false;
           customersPanel.scrollIntoView({ behavior: "smooth", block: "start" });
           loadCustomers();
+          return;
+        }
+        if (this.dataset.section === "services") {
+          servicesPanel.hidden = false;
+          servicesPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+          loadServices();
           return;
         }
         alert("این بخش در مراحل بعدی فعال خواهد شد.");
