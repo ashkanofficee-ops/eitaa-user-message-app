@@ -591,7 +591,7 @@
         const response = await fetch(
           SUPABASE_URL + "/functions/v1/admin-subscribers",
           {
-            method: "GET",
+            method: "Post",
             headers: {
               "apikey": SUPABASE_PUBLISHABLE_KEY,
               "Authorization": "Bearer " + token
