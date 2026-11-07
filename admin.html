@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پنل مدیریت | کافی نت اشکان</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Vazirmatn', Tahoma, sans-serif;
+      background: #F4F7F5;
+      color: #183D32;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1100px, 94%);
+      margin: 35px auto;
+    }
+
+    .header {
+      background: #123D32;
+      color: white;
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .header h1 {
+      font-size: 25px;
+      font-weight: 800;
+      margin-bottom: 7px;
+    }
+
+    .header p {
+      color: #DCEBE3;
+      font-size: 14px;
+    }
+
+    .header-icon {
+      font-size: 38px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 17px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #DCE6E0;
+      border-radius: 17px;
+      padding: 22px 17px;
+      min-height: 150px;
+      text-decoration: none;
+      color: #123D32;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      transition: 0.25s ease;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #123D32;
+      box-shadow: 0 8px 22px rgba(18, 61, 50, 0.09);
+    }
+
+    .card-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: #EAF2EE;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 23px;
+    }
+
+    .card h3 {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .card p {
+      color: #68776F;
+      font-size: 12px;
+    }
+
+    .stats {
+      background: white;
+      border: 1px solid #DCE6E0;
+      border-radius: 17px;
+      padding: 22px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      background: #F4F7F5;
+      border-radius: 13px;
+      padding: 18px 10px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 27px;
+      font-weight: 800;
+      color: #123D32;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #68776F;
+      margin-top: 5px;
+    }
+
+    .footer {
+      text-align: center;
+      color: #84928A;
+      font-size: 12px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 800px) {
+      .dashboard {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 420px) {
+      .container {
+        margin: 18px auto;
+      }
+
+      .header {
+        padding: 21px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .card {
+        padding: 17px 13px;
+        min-height: 140px;
+      }
+
+      .stats {
+        padding: 17px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <header class="header">
+      <div>
+        <h1>پنل مدیریت</h1>
+        <p>به سامانه مدیریت کافی نت اشکان خوش آمدید</p>
+      </div>
+      <div class="header-icon">◈</div>
+    </header>
+
+    <h2 class="section-title">بخش‌های مدیریتی</h2>
+
+    <section class="dashboard">
+
+      <a class="card" href="#" data-section="customers">
+        <div class="card-icon">👥</div>
+        <h3>مدیریت مشتریان</h3>
+        <p>مشاهده و جست‌وجوی مشتریان</p>
+      </a>
+
+      <a class="card" href="#" data-section="messages">
+        <div class="card-icon">💬</div>
+        <h3>گفت‌وگوها</h3>
+        <p>پیام‌های خصوصی مشتریان</p>
+      </a>
+
+      <a class="card" href="#" data-section="orders">
+        <div class="card-icon">🛍️</div>
+        <h3>سفارش‌ها</h3>
+        <p>مدیریت درخواست خدمات</p>
+      </a>
+
+      <a class="card" href="#" data-section="payments">
+        <div class="card-icon">💳</div>
+        <h3>پرداخت‌ها</h3>
+        <p>رسیدها و تأیید پرداخت</p>
+      </a>
+
+      <a class="card" href="#" data-section="send">
+        <div class="card-icon">📨</div>
+        <h3>ارسال پیام</h3>
+        <p>ارسال پیام فردی و گروهی</p>
+      </a>
+
+      <a class="card" href="#" data-section="reports">
+        <div class="card-icon">📊</div>
+        <h3>گزارش‌ها</h3>
+        <p>آمار و عملکرد سامانه</p>
+      </a>
+
+      <a class="card" href="#" data-section="services">
+        <div class="card-icon">💼</div>
+        <h3>مدیریت خدمات</h3>
+        <p>تعریف خدمات و قیمت‌ها</p>
+      </a>
+
+      <a class="card" href="#" data-section="settings">
+        <div class="card-icon">⚙️</div>
+        <h3>تنظیمات</h3>
+        <p>تنظیمات سامانه</p>
+      </a>
+
+    </section>
+
+    <section class="stats">
+      <h2 class="section-title">آمار کلی سامانه</h2>
+
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-number" id="customerCount">—</div>
+          <div class="stat-label">تعداد مشتریان</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-number" id="orderCount">—</div>
+          <div class="stat-label">تعداد سفارش‌ها</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-number" id="messageCount">—</div>
+          <div class="stat-label">پیام‌های جدید</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      سامانه مدیریت کافی نت اشکان
+    </footer>
+
+  </main>
+
+  <script>
+    document.querySelectorAll(".card").forEach(card => {
+      card.addEventListener("click", function(event) {
+        event.preventDefault();
+        alert("این بخش در مراحل بعدی فعال خواهد شد.");
+      });
+    });
+  </script>
+
+</body>
+</html>
