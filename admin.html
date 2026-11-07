@@ -181,6 +181,22 @@
     .service-row-button { margin:2px; padding:7px 10px; font-size:12px; }
     @media (max-width:600px) { .services-form { grid-template-columns:1fr; } .services-form textarea { grid-column:auto; } }
 
+
+    .orders-panel { background:#FFFFFF; border:1px solid #DCE6E0; border-radius:17px; padding:22px; margin-bottom:28px; }
+    .orders-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+    .orders-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .orders-actions button,.order-update-button { background:#123D32; color:white; border:0; border-radius:9px; padding:10px 14px; font-family:inherit; cursor:pointer; }
+    .orders-actions button.secondary { background:#EAF2EE; color:#123D32; }
+    .orders-status { color:#68776F; font-size:13px; margin:10px 0; }
+    .orders-table-wrap { width:100%; overflow-x:auto; }
+    .orders-table { width:100%; border-collapse:collapse; min-width:1050px; text-align:right; }
+    .orders-table th,.orders-table td { padding:11px 9px; border-bottom:1px solid #E7EEE9; font-size:12px; vertical-align:middle; }
+    .orders-table th { color:#123D32; background:#F4F7F5; font-weight:700; }
+    .orders-table select { min-width:145px; padding:8px; border:1px solid #DCE6E0; border-radius:8px; font-family:inherit; }
+    .order-update-button { padding:7px 10px; font-size:12px; }
+    .order-receipt-link { color:#176B50; text-decoration:underline; white-space:nowrap; }
+    .order-description { max-width:220px; white-space:normal; overflow-wrap:anywhere; }
+
     .login-screen {
       width: min(420px, 92%);
       margin: 100px auto;
@@ -427,6 +443,39 @@
         </table>
       </div>
     </section>
+
+    <section class="orders-panel" id="ordersPanel" hidden>
+      <div class="orders-toolbar">
+        <h2 class="section-title" style="margin-bottom:0;">مدیریت سفارش‌ها</h2>
+        <div class="orders-actions">
+          <button type="button" class="secondary" id="backFromOrders">بازگشت</button>
+          <button type="button" id="refreshOrders">به‌روزرسانی سفارش‌ها</button>
+        </div>
+      </div>
+
+      <div class="orders-status" id="ordersStatus">در حال آماده‌سازی فهرست سفارش‌ها...</div>
+      <div class="orders-table-wrap">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>شناسه</th>
+              <th>شناسه مشتری ایتا</th>
+              <th>خدمت</th>
+              <th>توضیحات</th>
+              <th>مبلغ (تومان)</th>
+              <th>رسید پرداخت</th>
+              <th>تاریخ ثبت</th>
+              <th>وضعیت سفارش</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <tr><td colspan="9" class="customers-empty">هنوز سفارشی دریافت نشده است.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="stats">
       <h2 class="section-title">آمار کلی سامانه</h2>
 
@@ -814,6 +863,184 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
+
+    const ordersPanel = document.getElementById("ordersPanel");
+    const ordersStatus = document.getElementById("ordersStatus");
+    const ordersTableBody = document.getElementById("ordersTableBody");
+    let ordersData = [];
+
+    const orderStatusLabels = {
+      pending: "در انتظار بررسی",
+      awaiting_payment: "در انتظار پرداخت",
+      paid: "پرداخت‌شده",
+      in_progress: "در حال انجام",
+      completed: "تکمیل‌شده",
+      rejected: "ردشده",
+      cancelled: "لغوشده"
+    };
+
+    const allowedOrderStatuses = [
+      "pending",
+      "awaiting_payment",
+      "paid",
+      "in_progress",
+      "completed",
+      "rejected",
+      "cancelled"
+    ];
+
+    function formatOrderDate(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "—";
+      return new Intl.DateTimeFormat("fa-IR", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      }).format(date);
+    }
+
+    async function callAdminOrders(payload) {
+      const token = sessionStorage.getItem("admin_token");
+      if (!token) {
+        showLogin();
+        throw new Error("نشست مدیریت منقضی شده است. دوباره وارد شوید.");
+      }
+
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "درخواست مدیریت سفارش‌ها ناموفق بود.");
+      }
+      return result;
+    }
+
+    function renderOrders() {
+      ordersTableBody.innerHTML = "";
+
+      if (ordersData.length === 0) {
+        ordersTableBody.innerHTML =
+          '<tr><td colspan="9" class="customers-empty">هنوز سفارشی ثبت نشده است.</td></tr>';
+        return;
+      }
+
+      ordersData.forEach(order => {
+        const row = document.createElement("tr");
+
+        const addCell = (value, className = "") => {
+          const cell = document.createElement("td");
+          cell.textContent = value == null || value === "" ? "—" : String(value);
+          if (className) cell.className = className;
+          row.appendChild(cell);
+          return cell;
+        };
+
+        addCell(order.id);
+        addCell(order.eitaa_user_id);
+        addCell(order.service_name || ("خدمت #" + (order.service_id ?? "—")));
+        addCell(order.description, "order-description");
+        addCell(
+          order.price == null
+            ? "—"
+            : Number(order.price).toLocaleString("fa-IR")
+        );
+
+        const receiptCell = document.createElement("td");
+        if (order.receipt_url) {
+          const receiptLink = document.createElement("a");
+          receiptLink.href = order.receipt_url;
+          receiptLink.target = "_blank";
+          receiptLink.rel = "noopener noreferrer";
+          receiptLink.className = "order-receipt-link";
+          receiptLink.textContent = "مشاهده رسید";
+          receiptCell.appendChild(receiptLink);
+        } else {
+          receiptCell.textContent = "بدون رسید";
+        }
+        row.appendChild(receiptCell);
+
+        addCell(formatOrderDate(order.created_at));
+
+        const statusCell = document.createElement("td");
+        const statusSelect = document.createElement("select");
+        statusSelect.setAttribute("aria-label", "وضعیت سفارش " + order.id);
+
+        allowedOrderStatuses.forEach(status => {
+          const option = document.createElement("option");
+          option.value = status;
+          option.textContent = orderStatusLabels[status];
+          statusSelect.appendChild(option);
+        });
+
+        statusSelect.value = allowedOrderStatuses.includes(order.status)
+          ? order.status
+          : "pending";
+        statusCell.appendChild(statusSelect);
+        row.appendChild(statusCell);
+
+        const actionCell = document.createElement("td");
+        const updateButton = document.createElement("button");
+        updateButton.type = "button";
+        updateButton.className = "order-update-button";
+        updateButton.textContent = "ذخیره وضعیت";
+        updateButton.addEventListener("click", async () => {
+          updateButton.disabled = true;
+          updateButton.textContent = "در حال ذخیره...";
+          try {
+            await callAdminOrders({
+              action: "update",
+              id: order.id,
+              status: statusSelect.value
+            });
+            order.status = statusSelect.value;
+            ordersStatus.textContent = "وضعیت سفارش شماره " + order.id + " با موفقیت به‌روزرسانی شد.";
+          } catch (error) {
+            ordersStatus.textContent = error.message || "به‌روزرسانی وضعیت سفارش ناموفق بود.";
+          } finally {
+            updateButton.disabled = false;
+            updateButton.textContent = "ذخیره وضعیت";
+          }
+        });
+        actionCell.appendChild(updateButton);
+        row.appendChild(actionCell);
+
+        ordersTableBody.appendChild(row);
+      });
+    }
+
+    async function loadOrders() {
+      ordersStatus.textContent = "در حال دریافت سفارش‌ها...";
+      ordersTableBody.innerHTML = "";
+
+      try {
+        const result = await callAdminOrders({ action: "list" });
+        ordersData = Array.isArray(result.orders) ? result.orders : [];
+        document.getElementById("orderCount").textContent =
+          result.total ?? ordersData.length;
+        ordersStatus.textContent =
+          "تعداد سفارش‌های ثبت‌شده: " + (result.total ?? ordersData.length);
+        renderOrders();
+      } catch (error) {
+        ordersStatus.textContent = error.message || "دریافت سفارش‌ها ناموفق بود.";
+        ordersTableBody.innerHTML =
+          '<tr><td colspan="9" class="customers-empty">بارگذاری سفارش‌ها با خطا مواجه شد.</td></tr>';
+      }
+    }
+
+    document.getElementById("refreshOrders").addEventListener("click", loadOrders);
+    document.getElementById("backFromOrders").addEventListener("click", function() {
+      ordersPanel.hidden = true;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
     document.querySelectorAll(".card").forEach(card => {
       card.addEventListener("click", function(event) {
         event.preventDefault();
@@ -827,6 +1054,12 @@
           servicesPanel.hidden = false;
           servicesPanel.scrollIntoView({ behavior: "smooth", block: "start" });
           loadServices();
+          return;
+        }
+        if (this.dataset.section === "orders") {
+          ordersPanel.hidden = false;
+          ordersPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+          loadOrders();
           return;
         }
         alert("این بخش در مراحل بعدی فعال خواهد شد.");
