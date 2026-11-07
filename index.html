@@ -3,54 +3,225 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ارتباط با کاربران</title>
+  <title>کافی‌نت اشکان</title>
   <script src="https://developer.eitaa.com/eitaa-web-app.js"></script>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
+      margin: 0;
+      min-height: 100vh;
       font-family: Tahoma, sans-serif;
       direction: rtl;
-      text-align: center;
-      padding: 35px 20px;
-      background: #f5f5f5;
-      color: #222;
+      text-align: right;
+      background: #f3f6f4;
+      color: #20332b;
     }
-    .box {
-      max-width: 420px;
-      margin: auto;
+    .page {
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 22px 16px 32px;
+    }
+    .header {
+      padding: 24px 20px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #104b38, #168b55);
+      color: #fff;
+      box-shadow: 0 8px 22px rgba(16, 75, 56, .16);
+    }
+    .header h1 {
+      margin: 0 0 9px;
+      font-size: 23px;
+    }
+    .header p {
+      margin: 0;
+      color: #e0f0e8;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .welcome {
+      margin: 20px 2px 16px;
+    }
+    .welcome h2 {
+      margin: 0 0 7px;
+      font-size: 18px;
+    }
+    .welcome p {
+      margin: 0;
+      color: #66766e;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+    .menu {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .menu-card {
+      min-height: 132px;
+      padding: 17px 14px;
+      border: 1px solid #e2eae5;
+      border-radius: 15px;
+      background: #fff;
+      text-align: right;
+      color: #20332b;
+      box-shadow: 0 3px 12px rgba(22, 54, 39, .04);
+    }
+    .menu-card .symbol {
+      display: inline-flex;
+      width: 39px;
+      height: 39px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      background: #e8f4ed;
+      color: #168b55;
+      font-size: 21px;
+    }
+    .menu-card strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+    }
+    .menu-card span:last-child {
+      display: block;
+      color: #748078;
+      font-size: 11px;
+      line-height: 1.8;
+    }
+    .menu-card:disabled {
+      opacity: 1;
+      cursor: default;
+    }
+    .section-note {
+      margin-top: 17px;
+      padding: 13px 15px;
+      border: 1px solid #e2eae5;
+      border-radius: 13px;
+      background: #fff;
+      color: #66766e;
+      font-size: 12px;
+      line-height: 2;
+    }
+    .register-box {
+      margin: 38px auto 0;
       padding: 25px;
-      background: white;
-      border-radius: 14px;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 5px 20px rgba(22, 54, 39, .06);
+      text-align: center;
     }
-    button {
-      padding: 13px 24px;
+    .register-box h2 {
+      margin: 0 0 12px;
+      font-size: 21px;
+      color: #174d39;
+    }
+    .register-box p {
+      margin: 0 0 20px;
+      color: #606b65;
+      font-size: 14px;
+      line-height: 2;
+    }
+    button.primary {
+      width: 100%;
+      padding: 14px 20px;
       border: 0;
-      border-radius: 8px;
+      border-radius: 10px;
       background: #168b55;
       color: white;
-      font-size: 16px;
+      font-size: 15px;
+      font-family: inherit;
       cursor: pointer;
     }
+    button.primary:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
     #status {
-      margin-top: 20px;
+      margin-top: 16px;
       line-height: 2;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .footer {
+      margin-top: 24px;
+      color: #89958e;
+      text-align: center;
+      font-size: 11px;
+    }
+    @media (max-width: 360px) {
+      .page { padding-right: 12px; padding-left: 12px; }
+      .menu { gap: 9px; }
+      .menu-card { padding: 14px 11px; }
     }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>ارتباط با ما</h2>
-    <p>
-      در صورت تمایل، می‌توانید اجازه دریافت پیام خصوصی
-      از طرف این برنامه را صادر کنید.
-    </p>
-    <button id="allow">موافقت و ادامه</button>
-    <div id="status"></div>
-  </div>
+  <main class="page">
+    <section id="registerScreen" class="register-box">
+      <h2>ارتباط با کافی‌نت اشکان</h2>
+      <p>
+        برای استفاده از خدمات و دریافت پیام‌های مربوط به سفارش،
+        در صورت تمایل اجازه دریافت پیام خصوصی از طرف این برنامه را صادر کنید.
+      </p>
+      <button id="allow" class="primary">موافقت و ادامه</button>
+      <div id="status"></div>
+    </section>
+
+    <section id="homeScreen" class="hidden">
+      <header class="header">
+        <h1>کافی‌نت اشکان</h1>
+        <p>خدمات آنلاین، سریع و آسان</p>
+      </header>
+
+      <div class="welcome">
+        <h2>به پنل مشتریان خوش آمدید</h2>
+        <p>از این قسمت می‌توانید خدمات را مشاهده کنید و سفارش‌های خود را پیگیری کنید.</p>
+      </div>
+
+      <div class="menu">
+        <button class="menu-card" type="button" disabled>
+          <span class="symbol">▤</span>
+          <strong>ثبت سفارش</strong>
+          <span>انتخاب خدمات و ثبت درخواست</span>
+        </button>
+        <button class="menu-card" type="button" disabled>
+          <span class="symbol">✓</span>
+          <strong>سفارش‌های من</strong>
+          <span>مشاهده و پیگیری سفارش‌ها</span>
+        </button>
+        <button class="menu-card" type="button" disabled>
+          <span class="symbol">✉</span>
+          <strong>گفت‌وگو با ما</strong>
+          <span>ارتباط خصوصی با مدیریت</span>
+        </button>
+        <button class="menu-card" type="button" disabled>
+          <span class="symbol">▣</span>
+          <strong>حساب کاربری</strong>
+          <span>اطلاعات حساب مشتری</span>
+        </button>
+      </div>
+
+      <div class="section-note">
+        پنل مشتری با موفقیت آماده شده است. بخش‌های ثبت سفارش، پیگیری و گفت‌وگو
+        در مراحل بعدی به سامانه مدیریت متصل و فعال خواهند شد.
+      </div>
+      <div class="footer">کافی‌نت اشکان</div>
+    </section>
+  </main>
 
   <script>
     const app = window.Eitaa?.WebApp;
     const button = document.getElementById("allow");
     const status = document.getElementById("status");
+    const registerScreen = document.getElementById("registerScreen");
+    const homeScreen = document.getElementById("homeScreen");
 
     if (app) {
       app.ready();
@@ -63,42 +234,48 @@
         return;
       }
 
+      button.disabled = true;
+
       app.requestWriteAccess(async function (allowed) {
-  if (!allowed) {
-    status.textContent = "اجازه‌ای صادر نشد.";
-    return;
-  }
+        if (!allowed) {
+          status.textContent = "اجازه‌ای صادر نشد.";
+          button.disabled = false;
+          return;
+        }
 
-  status.textContent = "اجازه دریافت شد؛ در حال ثبت اطلاعات...";
+        status.textContent = "اجازه دریافت شد؛ در حال ثبت اطلاعات...";
 
-  try {
-    const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/register-subscriber", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        initData: app.initData
-      })
-    });
+        try {
+          const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/register-subscriber", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              initData: app.initData
+            })
+          });
 
-    const responseText = await response.text();
-let result = {};
+          const responseText = await response.text();
+          let result = {};
 
-try {
-  result = JSON.parse(responseText);
-} catch {}
+          try {
+            result = JSON.parse(responseText);
+          } catch {}
 
-if (response.ok && result.success) {
-  status.textContent = "ثبت‌نام با موفقیت انجام شد.";
-} else {
-  status.textContent =
-    `ثبت اطلاعات انجام نشد. کد پاسخ: ${response.status}؛ علت: ${result.error || responseText || "پاسخ خالی از سرور"}`;
-}
-  } catch (error) {
-    status.textContent = "خطا در ارتباط با سرور.";
-  }
-});
+          if (response.ok && result.success) {
+            registerScreen.classList.add("hidden");
+            homeScreen.classList.remove("hidden");
+          } else {
+            status.textContent =
+              `ثبت اطلاعات انجام نشد. کد پاسخ: ${response.status}؛ علت: ${result.error || responseText || "پاسخ خالی از سرور"}`;
+            button.disabled = false;
+          }
+        } catch (error) {
+          status.textContent = "خطا در ارتباط با سرور.";
+          button.disabled = false;
+        }
+      });
     });
   </script>
 </body>
