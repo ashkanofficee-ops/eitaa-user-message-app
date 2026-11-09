@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -159,6 +160,68 @@
       text-align: center;
       font-size: 11px;
     }
+
+    /* Customer services */
+    .services-heading {
+      margin: 20px 2px 16px;
+    }
+    .services-heading h2 {
+      margin: 0 0 7px;
+      font-size: 18px;
+    }
+    .services-heading p {
+      margin: 0;
+      color: #66766e;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+    .service-list {
+      display: grid;
+      gap: 12px;
+    }
+    .service-item {
+      padding: 16px;
+      border: 1px solid #e2eae5;
+      border-radius: 15px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(22, 54, 39, .04);
+    }
+    .service-item strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+    }
+    .service-description {
+      color: #748078;
+      font-size: 12px;
+      line-height: 1.9;
+    }
+    .service-price {
+      margin-top: 12px;
+      color: #168b55;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .services-status {
+      margin: 16px 2px;
+      color: #66766e;
+      font-size: 13px;
+      line-height: 2;
+      overflow-wrap: anywhere;
+    }
+    .back-button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid #168b55;
+      border-radius: 10px;
+      background: #fff;
+      color: #168b55;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
     @media (max-width: 360px) {
       .page { padding-right: 12px; padding-left: 12px; }
       .menu { gap: 9px; }
@@ -190,7 +253,7 @@
       </div>
 
       <div class="menu">
-        <button class="menu-card" type="button" disabled>
+        <button id="servicesButton" class="menu-card" type="button">
           <span class="symbol">▤</span>
           <strong>ثبت سفارش</strong>
           <span>انتخاب خدمات و ثبت درخواست</span>
@@ -213,9 +276,33 @@
       </div>
 
       <div class="section-note">
-        پنل مشتری با موفقیت آماده شده است. بخش‌های ثبت سفارش، پیگیری و گفت‌وگو
-        در مراحل بعدی به سامانه مدیریت متصل و فعال خواهند شد.
+        بخش مشاهده خدمات فعال شده است. بخش‌های پیگیری سفارش، گفت‌وگو و حساب کاربری
+        در مراحل بعدی به سامانه مدیریت متصل خواهند شد.
       </div>
+      <div class="footer">کافی‌نت اشکان</div>
+    </section>
+
+    <section id="servicesScreen" class="hidden">
+      <header class="header">
+        <h1>کافی‌نت اشکان</h1>
+        <p>خدمات قابل ارائه به مشتریان</p>
+      </header>
+
+      <div class="services-heading">
+        <h2>انتخاب خدمت</h2>
+        <p>خدمات فعال را مشاهده کنید.</p>
+      </div>
+
+      <div id="servicesStatus" class="services-status">
+        در حال دریافت فهرست خدمات...
+      </div>
+
+      <div id="servicesList" class="service-list"></div>
+
+      <button id="backButton" class="back-button" type="button">
+        بازگشت به صفحه اصلی
+      </button>
+
       <div class="footer">کافی‌نت اشکان</div>
     </section>
   </main>
@@ -226,6 +313,11 @@
     const status = document.getElementById("status");
     const registerScreen = document.getElementById("registerScreen");
     const homeScreen = document.getElementById("homeScreen");
+    const servicesScreen = document.getElementById("servicesScreen");
+    const servicesButton = document.getElementById("servicesButton");
+    const servicesStatus = document.getElementById("servicesStatus");
+    const servicesList = document.getElementById("servicesList");
+    const backButton = document.getElementById("backButton");
 
     if (app) {
       app.ready();
@@ -280,6 +372,82 @@
           button.disabled = false;
         }
       });
+    });
+
+    servicesButton.addEventListener("click", async function () {
+      homeScreen.classList.add("hidden");
+      servicesScreen.classList.remove("hidden");
+      servicesStatus.textContent = "در حال دریافت فهرست خدمات...";
+      servicesList.replaceChildren();
+
+      try {
+        if (!app || !app.initData) {
+          throw new Error("اطلاعات ایتا در دسترس نیست. لطفاً برنامه را از داخل ایتا باز کنید.");
+        }
+
+        const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/customer-services", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            initData: app.initData
+          })
+        });
+
+        const responseText = await response.text();
+        let result = {};
+
+        try {
+          result = JSON.parse(responseText);
+        } catch {}
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.error || `خطا در دریافت خدمات. کد پاسخ: ${response.status}`
+          );
+        }
+
+        if (!Array.isArray(result.services) || result.services.length === 0) {
+          servicesStatus.textContent = "در حال حاضر خدمتی برای نمایش وجود ندارد.";
+          return;
+        }
+
+        servicesStatus.textContent = `${result.total} خدمت فعال پیدا شد.`;
+
+        result.services.forEach(function (service) {
+          const item = document.createElement("div");
+          item.className = "service-item";
+
+          const name = document.createElement("strong");
+          name.textContent = service.name || "بدون نام";
+
+          const description = document.createElement("div");
+          description.className = "service-description";
+          description.textContent = service.description || "توضیحاتی برای این خدمت ثبت نشده است.";
+
+          const price = document.createElement("div");
+          price.className = "service-price";
+
+          const numericPrice = Number(service.price);
+          price.textContent = Number.isFinite(numericPrice)
+            ? `${numericPrice.toLocaleString("fa-IR")} تومان`
+            : "قیمت نامشخص";
+
+          item.appendChild(name);
+          item.appendChild(description);
+          item.appendChild(price);
+
+          servicesList.appendChild(item);
+        });
+      } catch (error) {
+        servicesStatus.textContent = error.message || "خطا در دریافت خدمات.";
+      }
+    });
+
+    backButton.addEventListener("click", function () {
+      servicesScreen.classList.add("hidden");
+      homeScreen.classList.remove("hidden");
     });
   </script>
 </body>
