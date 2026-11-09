@@ -450,6 +450,7 @@
       <form class="services-form" id="serviceForm">
         <input type="text" id="serviceName" maxlength="200" placeholder="نام خدمت" required>
         <input type="number" id="servicePrice" min="0" step="1" placeholder="قیمت به تومان" required>
+        <input type="number" id="servicePricePerPoint" min="0" step="1" placeholder="قیمت هر امتیاز (فقط امتیاز وام رسالت)" hidden>
         <textarea id="serviceDescription" maxlength="2000" placeholder="توضیحات خدمت (اختیاری)"></textarea>
         <button type="submit" id="saveServiceButton">افزودن خدمت</button>
         <button type="button" class="secondary" id="cancelServiceEdit" hidden>لغو ویرایش</button>
@@ -458,9 +459,9 @@
       <div class="services-status" id="servicesStatus">در حال آماده‌سازی فهرست خدمات...</div>
       <div class="services-table-wrap">
         <table class="services-table">
-          <thead><tr><th>ردیف</th><th>نام خدمت</th><th>توضیحات</th><th>قیمت (تومان)</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+          <thead><tr><th>ردیف</th><th>نام خدمت</th><th>توضیحات</th><th>قیمت (تومان)</th><th>قیمت هر امتیاز (تومان)</th><th>وضعیت</th><th>عملیات</th></tr></thead>
           <tbody id="servicesTableBody">
-            <tr><td colspan="6" class="customers-empty">هنوز فهرستی دریافت نشده است.</td></tr>
+            <tr><td colspan="7" class="customers-empty">هنوز فهرستی دریافت نشده است.</td></tr>
           </tbody>
         </table>
       </div>
@@ -777,6 +778,7 @@
     const serviceForm = document.getElementById("serviceForm");
     const serviceName = document.getElementById("serviceName");
     const servicePrice = document.getElementById("servicePrice");
+    const servicePricePerPoint = document.getElementById("servicePricePerPoint");
     const serviceDescription = document.getElementById("serviceDescription");
     const saveServiceButton = document.getElementById("saveServiceButton");
     const cancelServiceEdit = document.getElementById("cancelServiceEdit");
@@ -810,14 +812,22 @@
     function resetServiceForm() {
       editingServiceId = null;
       serviceForm.reset();
+      servicePricePerPoint.hidden = true;
       saveServiceButton.textContent = "افزودن خدمت";
       cancelServiceEdit.hidden = true;
     }
 
+    function updatePricePerPointVisibility() {
+      servicePricePerPoint.hidden = !serviceName.value.trim().includes("امتیاز وام رسالت");
+      if (servicePricePerPoint.hidden) servicePricePerPoint.value = "";
+    }
+
+    serviceName.addEventListener("input", updatePricePerPointVisibility);
+
     function renderServices() {
       servicesTableBody.innerHTML = "";
       if (servicesData.length === 0) {
-        servicesTableBody.innerHTML = '<tr><td colspan="6" class="customers-empty">هنوز خدمتی ثبت نشده است.</td></tr>';
+        servicesTableBody.innerHTML = '<tr><td colspan="7" class="customers-empty">هنوز خدمتی ثبت نشده است.</td></tr>';
         return;
       }
 
@@ -828,6 +838,7 @@
           service.name || "—",
           service.description || "—",
           Number(service.price || 0).toLocaleString("fa-IR"),
+          service.price_per_point == null ? "—" : Number(service.price_per_point).toLocaleString("fa-IR"),
           service.is_active ? "فعال" : "غیرفعال"
         ];
 
@@ -846,7 +857,9 @@
           editingServiceId = service.id;
           serviceName.value = service.name || "";
           servicePrice.value = service.price ?? "";
+          servicePricePerPoint.value = service.price_per_point ?? "";
           serviceDescription.value = service.description || "";
+          updatePricePerPointVisibility();
           saveServiceButton.textContent = "ذخیره تغییرات";
           cancelServiceEdit.hidden = false;
           serviceForm.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -883,7 +896,7 @@
         renderServices();
       } catch (error) {
         servicesStatus.textContent = error.message || "دریافت فهرست خدمات ناموفق بود.";
-        servicesTableBody.innerHTML = '<tr><td colspan="6" class="customers-empty">بارگذاری فهرست با خطا مواجه شد.</td></tr>';
+        servicesTableBody.innerHTML = '<tr><td colspan="7" class="customers-empty">بارگذاری فهرست با خطا مواجه شد.</td></tr>';
       }
     }
 
@@ -895,6 +908,14 @@
         servicesStatus.textContent = "لطفاً نام و قیمت معتبر وارد کنید.";
         return;
       }
+      const pricePerPointValue = servicePricePerPoint.value.trim();
+      const pricePerPoint = name.includes("امتیاز وام رسالت")
+        ? (pricePerPointValue === "" ? null : Number(pricePerPointValue))
+        : null;
+      if (pricePerPoint !== null && (!Number.isFinite(pricePerPoint) || pricePerPoint < 0)) {
+        servicesStatus.textContent = "لطفاً قیمت معتبر برای هر امتیاز وارد کنید.";
+        return;
+      }
 
       saveServiceButton.disabled = true;
       try {
@@ -902,6 +923,7 @@
           action: editingServiceId === null ? "create" : "update",
           name,
           price,
+          price_per_point: pricePerPoint,
           description: serviceDescription.value.trim()
         };
         if (editingServiceId !== null) payload.id = editingServiceId;
