@@ -272,6 +272,104 @@
       outline-offset: 2px;
     }
 
+    /* Customer payment page */
+    .payment-box {
+      margin-top: 16px;
+      padding: 17px;
+      border: 1px solid #e2eae5;
+      border-radius: 15px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(22, 54, 39, .04);
+    }
+    .payment-summary {
+      padding: 13px;
+      border-radius: 11px;
+      background: #e8f4ed;
+      color: #174d39;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .payment-amount {
+      margin-top: 8px;
+      color: #168b55;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .bank-details {
+      margin-top: 14px;
+      padding: 15px;
+      border: 1px solid #d9e9df;
+      border-radius: 12px;
+      background: #f8fcf9;
+    }
+    .bank-details h3 {
+      margin: 0 0 12px;
+      color: #174d39;
+      font-size: 15px;
+    }
+    .bank-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #e5eee8;
+      font-size: 12px;
+    }
+    .bank-row:last-of-type {
+      border-bottom: 0;
+    }
+    .bank-row span {
+      color: #66766e;
+    }
+    .bank-row strong {
+      color: #20332b;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+    .copy-card-button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 11px;
+      border: 1px solid #168b55;
+      border-radius: 9px;
+      background: #fff;
+      color: #168b55;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .payment-box label {
+      display: block;
+      margin: 17px 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .payment-box input[type="file"] {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border: 1px dashed #9fc9ae;
+      border-radius: 10px;
+      background: #f8fcf9;
+      color: #20332b;
+      font-family: inherit;
+      font-size: 12px;
+    }
+    .payment-note {
+      margin-top: 8px;
+      color: #748078;
+      font-size: 11px;
+      line-height: 1.9;
+    }
+    .payment-status {
+      margin-top: 12px;
+      color: #174d39;
+      font-size: 13px;
+      line-height: 2;
+      overflow-wrap: anywhere;
+    }
+
     @media (max-width: 360px) {
       .page { padding-right: 12px; padding-left: 12px; }
       .menu { gap: 9px; }
@@ -381,6 +479,59 @@
       </button>
       <div class="footer">کافی‌نت اشکان</div>
     </section>
+
+    <section id="paymentScreen" class="hidden">
+      <header class="header">
+        <h1>پرداخت سفارش</h1>
+        <p>برای تکمیل سفارش، مبلغ را واریز و تصویر رسید را ارسال کنید.</p>
+      </header>
+
+      <div class="services-heading">
+        <h2>اطلاعات سفارش و پرداخت</h2>
+      </div>
+
+      <div class="payment-box">
+        <div class="payment-summary">
+          <div>شماره سفارش: <strong id="paymentOrderId">-</strong></div>
+          <div>خدمت: <strong id="paymentServiceName">-</strong></div>
+          <div class="payment-amount" id="paymentAmount">-</div>
+        </div>
+
+        <div class="bank-details">
+          <h3>اطلاعات واریز وجه</h3>
+          <div class="bank-row">
+            <span>بانک</span>
+            <strong>سامان</strong>
+          </div>
+          <div class="bank-row">
+            <span>شماره کارت</span>
+            <strong dir="ltr">6219-8618-4163-2762</strong>
+          </div>
+          <div class="bank-row">
+            <span>صاحب حساب</span>
+            <strong>اعظم‌السادات هاشمی</strong>
+          </div>
+          <button id="copyCardButton" class="copy-card-button" type="button">
+            کپی شماره کارت
+          </button>
+        </div>
+
+        <label for="receiptFile">تصویر رسید واریز</label>
+        <input id="receiptFile" type="file" accept="image/jpeg,image/png">
+        <div class="payment-note">
+          فقط تصویر JPG یا PNG با حداکثر حجم ۵ مگابایت قابل ارسال است.
+        </div>
+        <button id="uploadReceiptButton" class="primary" type="button" style="margin-top:16px;">
+          ارسال رسید پرداخت
+        </button>
+        <div id="paymentStatus" class="payment-status"></div>
+      </div>
+
+      <button id="paymentHomeButton" class="back-button" type="button">
+        بازگشت به صفحه اصلی
+      </button>
+      <div class="footer">کافی‌نت اشکان</div>
+    </section>
   </main>
 
   <script>
@@ -400,7 +551,17 @@
     const submitOrderButton = document.getElementById("submitOrderButton");
     const orderStatus = document.getElementById("orderStatus");
     const orderBackButton = document.getElementById("orderBackButton");
+    const paymentScreen = document.getElementById("paymentScreen");
+    const paymentOrderId = document.getElementById("paymentOrderId");
+    const paymentServiceName = document.getElementById("paymentServiceName");
+    const paymentAmount = document.getElementById("paymentAmount");
+    const copyCardButton = document.getElementById("copyCardButton");
+    const receiptFile = document.getElementById("receiptFile");
+    const uploadReceiptButton = document.getElementById("uploadReceiptButton");
+    const paymentStatus = document.getElementById("paymentStatus");
+    const paymentHomeButton = document.getElementById("paymentHomeButton");
     let selectedServiceId = null;
+    let currentOrderId = null;
 
     if (app) {
       app.ready();
@@ -600,14 +761,119 @@
           );
         }
 
-        orderStatus.textContent =
-          `سفارش شما با موفقیت ثبت شد. شماره سفارش: ${result.order?.id ?? "ثبت‌شده"}`;
+        if (!result.order?.id) {
+          throw new Error("سفارش ثبت شد اما شماره سفارش از سرور دریافت نشد.");
+        }
+
+        currentOrderId = result.order.id;
+        paymentOrderId.textContent = String(result.order.id);
+        paymentServiceName.textContent = result.order.service_name || "خدمت انتخاب‌شده";
+
+        const orderPrice = Number(result.order.price);
+        paymentAmount.textContent = Number.isFinite(orderPrice)
+          ? `${orderPrice.toLocaleString("fa-IR")} تومان`
+          : "مبلغ نامشخص";
+
+        receiptFile.value = "";
+        paymentStatus.textContent = "";
+        uploadReceiptButton.disabled = false;
         orderDescription.value = "";
+        orderScreen.classList.add("hidden");
+        paymentScreen.classList.remove("hidden");
       } catch (error) {
         orderStatus.textContent = error.message || "خطا در ثبت سفارش.";
       } finally {
         submitOrderButton.disabled = false;
       }
+    });
+
+    copyCardButton.addEventListener("click", async function () {
+      const cardNumber = "6219861841632762";
+
+      try {
+        await navigator.clipboard.writeText(cardNumber);
+        paymentStatus.textContent = "شماره کارت کپی شد.";
+      } catch {
+        const temporaryInput = document.createElement("textarea");
+        temporaryInput.value = cardNumber;
+        document.body.appendChild(temporaryInput);
+        temporaryInput.select();
+
+        const copied = document.execCommand("copy");
+        temporaryInput.remove();
+        paymentStatus.textContent = copied
+          ? "شماره کارت کپی شد."
+          : "کپی خودکار انجام نشد؛ شماره کارت را دستی کپی کنید.";
+      }
+    });
+
+    uploadReceiptButton.addEventListener("click", async function () {
+      if (!app || !app.initData) {
+        paymentStatus.textContent = "اطلاعات ایتا در دسترس نیست. لطفاً برنامه را از داخل ایتا باز کنید.";
+        return;
+      }
+
+      if (!currentOrderId) {
+        paymentStatus.textContent = "شماره سفارش در دسترس نیست.";
+        return;
+      }
+
+      const file = receiptFile.files && receiptFile.files[0];
+
+      if (!file) {
+        paymentStatus.textContent = "لطفاً تصویر رسید واریز را انتخاب کنید.";
+        return;
+      }
+
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        paymentStatus.textContent = "فقط تصویر JPG یا PNG قابل ارسال است.";
+        return;
+      }
+
+      if (file.size <= 0 || file.size > 5 * 1024 * 1024) {
+        paymentStatus.textContent = "حجم تصویر باید حداکثر ۵ مگابایت باشد.";
+        return;
+      }
+
+      uploadReceiptButton.disabled = true;
+      paymentStatus.textContent = "در حال بارگذاری و ثبت رسید...";
+
+      try {
+        const formData = new FormData();
+        formData.append("initData", app.initData);
+        formData.append("orderId", String(currentOrderId));
+        formData.append("receipt", file);
+
+        const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/customer-upload-receipt", {
+          method: "POST",
+          body: formData
+        });
+
+        const responseText = await response.text();
+        let result = {};
+
+        try {
+          result = JSON.parse(responseText);
+        } catch {}
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.error || `ارسال رسید انجام نشد. کد پاسخ: ${response.status}`
+          );
+        }
+
+        paymentStatus.textContent =
+          "رسید شما با موفقیت ارسال شد و سفارش در انتظار بررسی مدیریت است.";
+        receiptFile.disabled = true;
+      } catch (error) {
+        paymentStatus.textContent = error.message || "خطا در ارسال رسید.";
+        uploadReceiptButton.disabled = false;
+      }
+    });
+
+    paymentHomeButton.addEventListener("click", function () {
+      paymentScreen.classList.add("hidden");
+      homeScreen.classList.remove("hidden");
     });
   </script>
 </body>
