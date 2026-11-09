@@ -222,6 +222,56 @@
       cursor: pointer;
     }
 
+    /* Customer order form */
+    .order-box {
+      margin-top: 16px;
+      padding: 17px;
+      border: 1px solid #e2eae5;
+      border-radius: 15px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(22, 54, 39, .04);
+    }
+    .order-box label {
+      display: block;
+      margin: 14px 0 7px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .order-box textarea {
+      display: block;
+      width: 100%;
+      min-height: 110px;
+      padding: 11px;
+      border: 1px solid #d9e4dd;
+      border-radius: 10px;
+      background: #fff;
+      color: #20332b;
+      font: inherit;
+      font-size: 13px;
+      resize: vertical;
+    }
+    .selected-service {
+      padding: 12px;
+      border-radius: 10px;
+      background: #e8f4ed;
+      color: #174d39;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .order-status {
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 2;
+      overflow-wrap: anywhere;
+    }
+    .service-item {
+      cursor: pointer;
+    }
+    .service-item:focus {
+      outline: 2px solid #168b55;
+      outline-offset: 2px;
+    }
+
     @media (max-width: 360px) {
       .page { padding-right: 12px; padding-left: 12px; }
       .menu { gap: 9px; }
@@ -305,6 +355,32 @@
 
       <div class="footer">کافی‌نت اشکان</div>
     </section>
+
+    <section id="orderScreen" class="hidden">
+      <header class="header">
+        <h1>ثبت سفارش</h1>
+        <p>اطلاعات درخواست خود را تکمیل کنید</p>
+      </header>
+
+      <div class="services-heading">
+        <h2>خدمت انتخاب‌شده</h2>
+      </div>
+
+      <div class="order-box">
+        <div id="selectedService" class="selected-service"></div>
+        <label for="orderDescription">توضیحات سفارش (اختیاری)</label>
+        <textarea id="orderDescription" maxlength="5000" placeholder="اگر توضیح یا جزئیات خاصی دارید اینجا بنویسید..."></textarea>
+        <button id="submitOrderButton" class="primary" type="button" style="margin-top:16px;">
+          ثبت نهایی سفارش
+        </button>
+        <div id="orderStatus" class="order-status"></div>
+      </div>
+
+      <button id="orderBackButton" class="back-button" type="button">
+        بازگشت به فهرست خدمات
+      </button>
+      <div class="footer">کافی‌نت اشکان</div>
+    </section>
   </main>
 
   <script>
@@ -318,6 +394,13 @@
     const servicesStatus = document.getElementById("servicesStatus");
     const servicesList = document.getElementById("servicesList");
     const backButton = document.getElementById("backButton");
+    const orderScreen = document.getElementById("orderScreen");
+    const selectedService = document.getElementById("selectedService");
+    const orderDescription = document.getElementById("orderDescription");
+    const submitOrderButton = document.getElementById("submitOrderButton");
+    const orderStatus = document.getElementById("orderStatus");
+    const orderBackButton = document.getElementById("orderBackButton");
+    let selectedServiceId = null;
 
     if (app) {
       app.ready();
@@ -418,6 +501,9 @@
         result.services.forEach(function (service) {
           const item = document.createElement("div");
           item.className = "service-item";
+          item.tabIndex = 0;
+          item.setAttribute("role", "button");
+          item.setAttribute("aria-label", `ثبت سفارش ${service.name || "خدمت"}`);
 
           const name = document.createElement("strong");
           name.textContent = service.name || "بدون نام";
@@ -439,6 +525,24 @@
           item.appendChild(price);
 
           servicesList.appendChild(item);
+
+          function chooseService() {
+            selectedServiceId = service.id;
+            selectedService.textContent =
+              `${service.name || "بدون نام"} — ${Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString("fa-IR")} تومان` : "قیمت نامشخص"}`;
+            orderDescription.value = "";
+            orderStatus.textContent = "";
+            servicesScreen.classList.add("hidden");
+            orderScreen.classList.remove("hidden");
+          }
+
+          item.addEventListener("click", chooseService);
+          item.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              chooseService();
+            }
+          });
         });
       } catch (error) {
         servicesStatus.textContent = error.message || "خطا در دریافت خدمات.";
@@ -448,6 +552,62 @@
     backButton.addEventListener("click", function () {
       servicesScreen.classList.add("hidden");
       homeScreen.classList.remove("hidden");
+    });
+
+
+    orderBackButton.addEventListener("click", function () {
+      orderScreen.classList.add("hidden");
+      servicesScreen.classList.remove("hidden");
+    });
+
+    submitOrderButton.addEventListener("click", async function () {
+      if (!app || !app.initData) {
+        orderStatus.textContent = "اطلاعات ایتا در دسترس نیست. لطفاً برنامه را از داخل ایتا باز کنید.";
+        return;
+      }
+
+      if (!selectedServiceId) {
+        orderStatus.textContent = "لطفاً ابتدا یک خدمت انتخاب کنید.";
+        return;
+      }
+
+      submitOrderButton.disabled = true;
+      orderStatus.textContent = "در حال ثبت سفارش...";
+
+      try {
+        const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/customer-create-order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            initData: app.initData,
+            serviceId: selectedServiceId,
+            description: orderDescription.value
+          })
+        });
+
+        const responseText = await response.text();
+        let result = {};
+
+        try {
+          result = JSON.parse(responseText);
+        } catch {}
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.error || `ثبت سفارش انجام نشد. کد پاسخ: ${response.status}`
+          );
+        }
+
+        orderStatus.textContent =
+          `سفارش شما با موفقیت ثبت شد. شماره سفارش: ${result.order?.id ?? "ثبت‌شده"}`;
+        orderDescription.value = "";
+      } catch (error) {
+        orderStatus.textContent = error.message || "خطا در ثبت سفارش.";
+      } finally {
+        submitOrderButton.disabled = false;
+      }
     });
   </script>
 </body>
