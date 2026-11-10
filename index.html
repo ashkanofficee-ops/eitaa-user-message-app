@@ -161,6 +161,26 @@
       font-size: 13px;
       overflow-wrap: anywhere;
     }
+    .registration-progress {
+      width: 100%;
+      height: 6px;
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5eee8;
+    }
+    .registration-progress span {
+      display: block;
+      width: 40%;
+      height: 100%;
+      border-radius: inherit;
+      background: #168b55;
+      animation: registration-progress-move 1.4s ease-in-out infinite;
+    }
+    @keyframes registration-progress-move {
+      0% { transform: translateX(160%); }
+      100% { transform: translateX(-260%); }
+    }
     .hidden {
       display: none !important;
     }
@@ -621,7 +641,7 @@
           return;
         }
 
-        status.textContent = "اجازه دریافت شد؛ در حال ثبت اطلاعات...";
+        status.innerHTML = 'در حال ورود به مینی‌اپ کافی‌نت اشکان هستیم...<div class="registration-progress" role="progressbar" aria-label="در حال ورود"><span></span></div>';
 
         try {
           const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/register-subscriber", {
