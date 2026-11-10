@@ -343,8 +343,9 @@
     .payment-amount {
       margin-top: 8px;
       color: #168b55;
-      font-size: 20px;
-      font-weight: 800;
+      font-size: 26px;
+      font-weight: 900;
+      text-align: center;
     }
     .bank-details {
       margin-top: 14px;
@@ -557,8 +558,7 @@
 
       <div class="payment-box">
         <div class="payment-summary">
-          <div>وضعیت سفارش: <strong id="paymentOrderId">پس از ارسال رسید ثبت می‌شود</strong></div>
-          <div>خدمت: <strong id="paymentServiceName">-</strong></div>
+          <div id="paymentServiceName">-</div>
           <div class="payment-amount" id="paymentAmount">-</div>
         </div>
 
@@ -621,7 +621,6 @@
     const pointsQuantity = document.getElementById("pointsQuantity");
     const pointsPriceInfo = document.getElementById("pointsPriceInfo");
     const paymentScreen = document.getElementById("paymentScreen");
-    const paymentOrderId = document.getElementById("paymentOrderId");
     const paymentServiceName = document.getElementById("paymentServiceName");
     const paymentAmount = document.getElementById("paymentAmount");
     const copyCardButton = document.getElementById("copyCardButton");
@@ -859,8 +858,9 @@
 
       pendingOrderQuantity = quantity;
       currentOrderId = null;
-      paymentOrderId.textContent = "پس از ارسال رسید ثبت می‌شود";
-      paymentServiceName.textContent = selectedService.textContent || "خدمت انتخاب‌شده";
+      paymentServiceName.textContent = selectedServiceIsPoints
+        ? `${quantity.toLocaleString("fa-IR")} امتیاز وام بانک رسالت`
+        : (selectedService.textContent || "خدمت انتخاب‌شده");
       paymentAmount.textContent = `${invoiceTotal.toLocaleString("fa-IR")} تومان`;
       receiptFile.value = "";
       receiptFile.disabled = false;
@@ -957,7 +957,6 @@
 
         if (result.order?.id) {
           currentOrderId = result.order.id;
-          paymentOrderId.textContent = String(result.order.id);
         }
         if (result.order?.price != null) {
           const confirmedPrice = Number(result.order.price);
