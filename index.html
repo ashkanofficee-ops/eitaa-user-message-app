@@ -734,7 +734,8 @@
           const price = document.createElement("div");
           price.className = "service-price";
 
-          const isPointsService = String(service.name || "").includes("امتیاز وام رسالت");
+          const serviceNameForPoints = String(service.name || "");
+          const isPointsService = serviceNameForPoints.includes("امتیاز") && serviceNameForPoints.includes("رسالت");
           const numericPrice = Number(service.price);
           const numericPricePerPoint = service.price_per_point == null ? NaN : Number(service.price_per_point);
           price.textContent = isPointsService
