@@ -434,6 +434,41 @@
       overflow-wrap: anywhere;
     }
 
+    /* Order submission success screen */
+    .success-screen {
+      min-height: calc(100vh - 54px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 34px 22px;
+      border-radius: 22px;
+      background: linear-gradient(145deg, #087a49, #16a765);
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(8, 122, 73, .22);
+    }
+    .success-icon {
+      width: 116px;
+      height: 116px;
+      margin-bottom: 25px;
+      filter: drop-shadow(0 8px 14px rgba(0, 45, 25, .2));
+    }
+    .success-screen h2 {
+      margin: 0 0 13px;
+      font-size: 22px;
+      line-height: 1.8;
+      font-weight: 800;
+    }
+    .success-screen p {
+      max-width: 390px;
+      margin: 0;
+      color: #e2f7eb;
+      font-size: 13px;
+      line-height: 2.2;
+      font-weight: 400;
+    }
+
     @media (max-width: 360px) {
       .page { padding-right: 12px; padding-left: 12px; }
       .menu { gap: 9px; }
@@ -598,6 +633,17 @@
       </button>
       <div class="footer">کافی‌نت اشکان</div>
     </section>
+
+    <section id="successScreen" class="success-screen hidden" aria-live="polite">
+      <svg class="success-icon" viewBox="0 0 120 120" role="img" aria-label="تکمیل موفق سفارش">
+        <circle cx="60" cy="60" r="53" fill="none" stroke="#ffffff" stroke-width="5" opacity="0.95" />
+        <path d="M34 61 L51 78 L87 41" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M18 25 L22 16 L26 25 L35 29 L26 33 L22 42 L18 33 L9 29 Z" fill="#d9ffea" />
+        <path d="M91 87 L94 80 L97 87 L104 90 L97 93 L94 100 L91 93 L84 90 Z" fill="#d9ffea" />
+      </svg>
+      <h2>سفارش شما با موفقیت تکمیل شد</h2>
+      <p>کارشناسان ما در اسرع وقت سفارش شما را تکمیل می‌کنند و نتیجه از قسمت مدیریت سفارش‌ها قابل پیگیری است.</p>
+    </section>
   </main>
 
   <script>
@@ -629,6 +675,7 @@
     const uploadReceiptButton = document.getElementById("uploadReceiptButton");
     const paymentStatus = document.getElementById("paymentStatus");
     const paymentHomeButton = document.getElementById("paymentHomeButton");
+    const successScreen = document.getElementById("successScreen");
     let selectedServiceId = null;
     let currentOrderId = null;
     let selectedServiceIsPoints = false;
@@ -965,10 +1012,10 @@
           }
         }
 
-        paymentStatus.textContent =
-          "رسید شما با موفقیت ارسال شد و سفارش در انتظار بررسی مدیریت است.";
         receiptFile.disabled = true;
         uploadReceiptButton.disabled = true;
+        paymentScreen.classList.add("hidden");
+        successScreen.classList.remove("hidden");
       } catch (error) {
         paymentStatus.textContent = error.message || "خطا در ارسال رسید.";
         uploadReceiptButton.disabled = false;
