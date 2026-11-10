@@ -258,6 +258,27 @@
       font-size: 13px;
       line-height: 2;
     }
+    .points-quantity-box {
+      margin-top: 14px;
+    }
+    .points-quantity-box input {
+      display: block;
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #d9e4dd;
+      border-radius: 10px;
+      background: #fff;
+      color: #20332b;
+      font: inherit;
+      font-size: 13px;
+    }
+    .points-price-info {
+      margin-top: 9px;
+      color: #168b55;
+      font-size: 13px;
+      line-height: 2;
+      font-weight: 700;
+    }
     .order-status {
       margin-top: 12px;
       font-size: 13px;
@@ -466,6 +487,11 @@
 
       <div class="order-box">
         <div id="selectedService" class="selected-service"></div>
+        <div id="pointsQuantityBox" class="points-quantity-box hidden">
+          <label for="pointsQuantity">تعداد امتیاز موردنظر</label>
+          <input id="pointsQuantity" type="number" min="1" step="1" inputmode="numeric" placeholder="مثلاً ۱۰۰">
+          <div id="pointsPriceInfo" class="points-price-info"></div>
+        </div>
         <label for="orderDescription">توضیحات سفارش (اختیاری)</label>
         <textarea id="orderDescription" maxlength="5000" placeholder="اگر توضیح یا جزئیات خاصی دارید اینجا بنویسید..."></textarea>
         <button id="submitOrderButton" class="primary" type="button" style="margin-top:16px;">
@@ -551,6 +577,9 @@
     const submitOrderButton = document.getElementById("submitOrderButton");
     const orderStatus = document.getElementById("orderStatus");
     const orderBackButton = document.getElementById("orderBackButton");
+    const pointsQuantityBox = document.getElementById("pointsQuantityBox");
+    const pointsQuantity = document.getElementById("pointsQuantity");
+    const pointsPriceInfo = document.getElementById("pointsPriceInfo");
     const paymentScreen = document.getElementById("paymentScreen");
     const paymentOrderId = document.getElementById("paymentOrderId");
     const paymentServiceName = document.getElementById("paymentServiceName");
@@ -562,6 +591,8 @@
     const paymentHomeButton = document.getElementById("paymentHomeButton");
     let selectedServiceId = null;
     let currentOrderId = null;
+    let selectedServiceIsPoints = false;
+    let selectedPricePerPoint = 0;
 
     if (app) {
       app.ready();
@@ -676,10 +707,16 @@
           const price = document.createElement("div");
           price.className = "service-price";
 
+          const isPointsService = String(service.name || "").includes("امتیاز وام رسالت");
           const numericPrice = Number(service.price);
-          price.textContent = Number.isFinite(numericPrice)
-            ? `${numericPrice.toLocaleString("fa-IR")} تومان`
-            : "قیمت نامشخص";
+          const numericPricePerPoint = service.price_per_point == null ? NaN : Number(service.price_per_point);
+          price.textContent = isPointsService
+            ? (Number.isFinite(numericPricePerPoint) && numericPricePerPoint >= 0
+              ? `هر امتیاز: ${numericPricePerPoint.toLocaleString("fa-IR")} تومان`
+              : "قیمت هر امتیاز نامشخص")
+            : (Number.isFinite(numericPrice)
+              ? `${numericPrice.toLocaleString("fa-IR")} تومان`
+              : "قیمت نامشخص");
 
           item.appendChild(name);
           item.appendChild(description);
@@ -689,8 +726,16 @@
 
           function chooseService() {
             selectedServiceId = service.id;
-            selectedService.textContent =
-              `${service.name || "بدون نام"} — ${Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString("fa-IR")} تومان` : "قیمت نامشخص"}`;
+            selectedServiceIsPoints = isPointsService;
+            selectedPricePerPoint = numericPricePerPoint;
+            selectedService.textContent = selectedServiceIsPoints
+              ? `${service.name || "بدون نام"} — قیمت هر امتیاز: ${Number.isFinite(selectedPricePerPoint) ? `${selectedPricePerPoint.toLocaleString("fa-IR")} تومان` : "نامشخص"}`
+              : `${service.name || "بدون نام"} — ${Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString("fa-IR")} تومان` : "قیمت نامشخص"}`;
+            pointsQuantity.value = "";
+            pointsPriceInfo.textContent = selectedServiceIsPoints
+              ? `قیمت هر امتیاز: ${Number.isFinite(selectedPricePerPoint) ? `${selectedPricePerPoint.toLocaleString("fa-IR")} تومان` : "نامشخص"}؛ تعداد را وارد کنید.`
+              : "";
+            pointsQuantityBox.classList.toggle("hidden", !selectedServiceIsPoints);
             orderDescription.value = "";
             orderStatus.textContent = "";
             servicesScreen.classList.add("hidden");
@@ -721,6 +766,17 @@
       servicesScreen.classList.remove("hidden");
     });
 
+    pointsQuantity.addEventListener("input", function () {
+      if (!selectedServiceIsPoints) return;
+      const quantity = Number(pointsQuantity.value);
+      if (!Number.isSafeInteger(quantity) || quantity < 1) {
+        pointsPriceInfo.textContent = `قیمت هر امتیاز: ${selectedPricePerPoint.toLocaleString("fa-IR")} تومان؛ تعداد معتبر را وارد کنید.`;
+        return;
+      }
+      const total = quantity * selectedPricePerPoint;
+      pointsPriceInfo.textContent = `مبلغ کل: ${Number.isFinite(total) ? total.toLocaleString("fa-IR") : "نامعتبر"} تومان`;
+    });
+
     submitOrderButton.addEventListener("click", async function () {
       if (!app || !app.initData) {
         orderStatus.textContent = "اطلاعات ایتا در دسترس نیست. لطفاً برنامه را از داخل ایتا باز کنید.";
@@ -730,6 +786,20 @@
       if (!selectedServiceId) {
         orderStatus.textContent = "لطفاً ابتدا یک خدمت انتخاب کنید.";
         return;
+      }
+
+      let quantity = null;
+      if (selectedServiceIsPoints) {
+        quantity = Number(pointsQuantity.value);
+        if (!Number.isSafeInteger(quantity) || quantity < 1) {
+          orderStatus.textContent = "لطفاً تعداد معتبر امتیاز را وارد کنید.";
+          pointsQuantity.focus();
+          return;
+        }
+        if (!Number.isFinite(selectedPricePerPoint) || selectedPricePerPoint < 0) {
+          orderStatus.textContent = "قیمت هر امتیاز مشخص نیست. لطفاً با مدیریت تماس بگیرید.";
+          return;
+        }
       }
 
       submitOrderButton.disabled = true;
@@ -744,7 +814,8 @@
           body: JSON.stringify({
             initData: app.initData,
             serviceId: selectedServiceId,
-            description: orderDescription.value
+            description: orderDescription.value,
+            quantity: quantity
           })
         });
 
