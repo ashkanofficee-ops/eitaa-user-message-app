@@ -390,6 +390,18 @@
       font-size: 13px;
       cursor: pointer;
     }
+    .copy-card-button.copied {
+      background: rgba(22, 139, 85, .12);
+      border-color: #168b55;
+      color: #168b55;
+    }
+    .copy-card-status {
+      margin-top: 8px;
+      color: #168b55;
+      font-size: 12px;
+      line-height: 1.8;
+      text-align: center;
+    }
     .payment-box label {
       display: block;
       margin: 17px 0 8px;
@@ -567,6 +579,7 @@
           <button id="copyCardButton" class="copy-card-button" type="button">
             کپی شماره کارت
           </button>
+          <div id="copyCardStatus" class="copy-card-status" aria-live="polite"></div>
         </div>
 
         <label for="receiptFile">تصویر رسید واریز</label>
@@ -612,6 +625,7 @@
     const paymentServiceName = document.getElementById("paymentServiceName");
     const paymentAmount = document.getElementById("paymentAmount");
     const copyCardButton = document.getElementById("copyCardButton");
+    const copyCardStatus = document.getElementById("copyCardStatus");
     const receiptFile = document.getElementById("receiptFile");
     const uploadReceiptButton = document.getElementById("uploadReceiptButton");
     const paymentStatus = document.getElementById("paymentStatus");
@@ -888,21 +902,27 @@
 
     copyCardButton.addEventListener("click", async function () {
       const cardNumber = "6219861841632762";
+      let copied = false;
 
       try {
         await navigator.clipboard.writeText(cardNumber);
-        paymentStatus.textContent = "شماره کارت کپی شد.";
+        copied = true;
       } catch {
         const temporaryInput = document.createElement("textarea");
         temporaryInput.value = cardNumber;
         document.body.appendChild(temporaryInput);
         temporaryInput.select();
 
-        const copied = document.execCommand("copy");
+        copied = document.execCommand("copy");
         temporaryInput.remove();
-        paymentStatus.textContent = copied
-          ? "شماره کارت کپی شد."
-          : "کپی خودکار انجام نشد؛ شماره کارت را دستی کپی کنید.";
+      }
+
+      if (copied) {
+        copyCardStatus.textContent = "شماره کپی شد";
+        copyCardButton.classList.add("copied");
+      } else {
+        copyCardStatus.textContent = "کپی خودکار انجام نشد؛ شماره کارت را دستی کپی کنید.";
+        copyCardButton.classList.remove("copied");
       }
     });
 
