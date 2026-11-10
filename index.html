@@ -468,6 +468,20 @@
       line-height: 2.2;
       font-weight: 400;
     }
+    .success-home-button {
+      margin-top: 28px;
+      min-width: 180px;
+      padding: 12px 24px;
+      border: 1px solid rgba(255, 255, 255, .9);
+      border-radius: 12px;
+      background: #ffffff;
+      color: #087a49;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 5px 14px rgba(0, 45, 25, .16);
+    }
 
     @media (max-width: 360px) {
       .page { padding-right: 12px; padding-left: 12px; }
@@ -643,6 +657,9 @@
       </svg>
       <h2>سفارش شما با موفقیت تکمیل شد</h2>
       <p>کارشناسان ما در اسرع وقت سفارش شما را تکمیل می‌کنند و نتیجه از قسمت مدیریت سفارش‌ها قابل پیگیری است.</p>
+      <button id="successHomeButton" class="success-home-button" type="button">
+        بازگشت به صفحه اصلی
+      </button>
     </section>
   </main>
 
@@ -1024,6 +1041,11 @@
 
     paymentHomeButton.addEventListener("click", function () {
       paymentScreen.classList.add("hidden");
+      homeScreen.classList.remove("hidden");
+    });
+
+    document.getElementById("successHomeButton").addEventListener("click", function () {
+      successScreen.classList.add("hidden");
       homeScreen.classList.remove("hidden");
     });
   </script>
