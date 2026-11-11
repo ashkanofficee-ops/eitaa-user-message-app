@@ -252,6 +252,64 @@
       cursor: pointer;
     }
 
+    /* Customer order tracking */
+    .tracking-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .tracking-item {
+      padding: 15px;
+      border: 1px solid #e2eae5;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(22, 54, 39, .04);
+    }
+    .tracking-item h3 {
+      margin: 0 0 9px;
+      color: #20332b;
+      font-size: 14px;
+    }
+    .tracking-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      color: #66766e;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .tracking-meta strong {
+      color: #20332b;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+    .tracking-status {
+      display: inline-block;
+      margin-top: 9px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: #e8f4ed;
+      color: #168b55;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .tracking-status.status-pending,
+    .tracking-status.status-awaiting_payment {
+      background: #fff4d9;
+      color: #946200;
+    }
+    .tracking-status.status-paid,
+    .tracking-status.status-in_progress {
+      background: #e8f1ff;
+      color: #245ca6;
+    }
+    .tracking-status.status-rejected,
+    .tracking-status.status-cancelled {
+      background: #ffebeb;
+      color: #b42318;
+    }
+
     /* Customer order form */
     .order-box {
       margin-top: 16px;
@@ -526,7 +584,7 @@
           <strong>ثبت سفارش</strong>
           <span>انتخاب خدمات و ثبت درخواست</span>
         </button>
-        <button class="menu-card" type="button" disabled>
+        <button id="myOrdersButton" class="menu-card" type="button">
           <span class="symbol">✓</span>
           <strong>سفارش‌های من</strong>
           <span>مشاهده و پیگیری سفارش‌ها</span>
@@ -571,6 +629,26 @@
         بازگشت به صفحه اصلی
       </button>
 
+      <div class="footer">کافی‌نت اشکان</div>
+    </section>
+
+    <section id="myOrdersScreen" class="hidden">
+      <header class="header">
+        <h1>کافی‌نت اشکان</h1>
+        <p>پیگیری و مشاهده سوابق سفارش‌ها</p>
+      </header>
+
+      <div class="services-heading">
+        <h2>سفارش‌های من</h2>
+        <p>وضعیت و جزئیات سفارش‌های ثبت‌شده شما</p>
+      </div>
+
+      <div id="myOrdersStatus" class="services-status" aria-live="polite">در حال دریافت سفارش‌ها...</div>
+      <div id="myOrdersList" class="tracking-list"></div>
+
+      <button id="myOrdersBackButton" class="back-button" type="button">
+        بازگشت به صفحه اصلی
+      </button>
       <div class="footer">کافی‌نت اشکان</div>
     </section>
 
@@ -681,6 +759,11 @@
     const homeScreen = document.getElementById("homeScreen");
     const servicesScreen = document.getElementById("servicesScreen");
     const servicesButton = document.getElementById("servicesButton");
+    const myOrdersButton = document.getElementById("myOrdersButton");
+    const myOrdersScreen = document.getElementById("myOrdersScreen");
+    const myOrdersStatus = document.getElementById("myOrdersStatus");
+    const myOrdersList = document.getElementById("myOrdersList");
+    const myOrdersBackButton = document.getElementById("myOrdersBackButton");
     const servicesStatus = document.getElementById("servicesStatus");
     const servicesList = document.getElementById("servicesList");
     const backButton = document.getElementById("backButton");
@@ -763,6 +846,96 @@
           button.disabled = false;
         }
       });
+    });
+
+    const orderStatusLabels = {
+      pending: "در انتظار بررسی",
+      awaiting_payment: "در انتظار بررسی رسید پرداخت",
+      paid: "پرداخت تأیید شد",
+      in_progress: "در حال انجام",
+      completed: "تکمیل شده",
+      rejected: "رد شده",
+      cancelled: "لغو شده"
+    };
+
+    myOrdersButton.addEventListener("click", async function () {
+      homeScreen.classList.add("hidden");
+      myOrdersScreen.classList.remove("hidden");
+      myOrdersStatus.textContent = "در حال دریافت سفارش‌ها...";
+      myOrdersList.replaceChildren();
+
+      try {
+        if (!app || !app.initData) {
+          throw new Error("اطلاعات ایتا در دسترس نیست. لطفاً برنامه را از داخل ایتا باز کنید.");
+        }
+
+        const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/customer-orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ initData: app.initData })
+        });
+
+        const responseText = await response.text();
+        let result = {};
+
+        try {
+          result = JSON.parse(responseText);
+        } catch {}
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || `خطا در دریافت سفارش‌ها. کد پاسخ: ${response.status}`);
+        }
+
+        if (!Array.isArray(result.orders) || result.orders.length === 0) {
+          myOrdersStatus.textContent = "هنوز سفارشی برای شما ثبت نشده است.";
+          return;
+        }
+
+        myOrdersStatus.textContent = `${result.orders.length.toLocaleString("fa-IR")} سفارش برای شما پیدا شد.`;
+
+        result.orders.forEach(function (order) {
+          const item = document.createElement("article");
+          item.className = "tracking-item";
+
+          const title = document.createElement("h3");
+          title.textContent = order.service_name || "خدمت بدون نام";
+          item.appendChild(title);
+
+          const details = [
+            ["شماره سفارش", order.id],
+            ["مبلغ", order.price == null ? "نامشخص" : `${Number(order.price).toLocaleString("fa-IR")} تومان`],
+            ["تاریخ ثبت", order.created_at ? new Date(order.created_at).toLocaleString("fa-IR") : "نامشخص"]
+          ];
+
+          details.forEach(function (detail) {
+            const row = document.createElement("div");
+            row.className = "tracking-meta";
+            const label = document.createElement("span");
+            label.textContent = detail[0];
+            const value = document.createElement("strong");
+            value.textContent = String(detail[1]);
+            row.appendChild(label);
+            row.appendChild(value);
+            item.appendChild(row);
+          });
+
+          const statusBadge = document.createElement("span");
+          statusBadge.className = `tracking-status status-${String(order.status || "").replace(/[^a-z_]/g, "")}`;
+          statusBadge.textContent = orderStatusLabels[order.status] || "وضعیت نامشخص";
+          item.appendChild(statusBadge);
+
+          myOrdersList.appendChild(item);
+        });
+      } catch (error) {
+        myOrdersStatus.textContent = error.message || "خطا در دریافت سفارش‌ها.";
+      }
+    });
+
+    myOrdersBackButton.addEventListener("click", function () {
+      myOrdersScreen.classList.add("hidden");
+      homeScreen.classList.remove("hidden");
     });
 
     servicesButton.addEventListener("click", async function () {
