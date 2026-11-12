@@ -86,6 +86,28 @@
       color: #168b55;
       font-size: 21px;
     }
+    .menu-card .symbol {
+      animation: menuSymbolFloat 3.6s ease-in-out infinite;
+      transform-origin: center center;
+    }
+    .menu-card:nth-child(2) .symbol {
+      animation-delay: .45s;
+    }
+    .menu-card:nth-child(3) .symbol {
+      animation-delay: .9s;
+    }
+    .menu-card:nth-child(4) .symbol {
+      animation-delay: 1.35s;
+    }
+    @keyframes menuSymbolFloat {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-2px) rotate(-1.2deg);
+      }
+    }
+
     .menu-card strong {
       display: block;
       margin-bottom: 7px;
