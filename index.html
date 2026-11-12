@@ -1165,7 +1165,38 @@
       }
     });
 
+    let receiptUploadInFlight = false;
+    const pendingReceiptRequests = new Map();
+
+    async function getReceiptRequest(file, serviceId, description, quantity) {
+      const bytes = await file.arrayBuffer();
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const fileHash = Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      const userText = new URLSearchParams(app.initData).get("user");
+      const userId = userText ? String(JSON.parse(userText).id) : "";
+      const signature = JSON.stringify([userId, serviceId, description.trim(), quantity, fileHash]);
+      const signatureHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(signature));
+      const storageKey = "ashkan.receiptRequest." + Array.from(new Uint8Array(signatureHash))
+        .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      let requestId = pendingReceiptRequests.get(storageKey);
+      if (!requestId) {
+        try { requestId = sessionStorage.getItem(storageKey); } catch {}
+      }
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId || "")) {
+        const randomBytes = crypto.getRandomValues(new Uint8Array(16));
+        randomBytes[6] = (randomBytes[6] & 15) | 64;
+        randomBytes[8] = (randomBytes[8] & 63) | 128;
+        const hex = Array.from(randomBytes).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+        requestId = [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join("-");
+      }
+      pendingReceiptRequests.set(storageKey, requestId);
+      try { sessionStorage.setItem(storageKey, requestId); } catch {}
+      return { requestId, storageKey };
+    }
+
     uploadReceiptButton.addEventListener("click", async function () {
+      if (receiptUploadInFlight) return;
       if (!app || !app.initData) {
         paymentStatus.textContent = "اطلاعات ایتا در دسترس نیست. لطفاً برنامه را از داخل ایتا باز کنید.";
         return;
@@ -1193,17 +1224,23 @@
         return;
       }
 
+      receiptUploadInFlight = true;
       uploadReceiptButton.disabled = true;
       paymentStatus.textContent = "در حال بارگذاری رسید و ثبت سفارش...";
 
       try {
+        const requestServiceId = String(selectedServiceId);
+        const requestDescription = orderDescription.value;
+        const requestQuantity = selectedServiceIsPoints ? String(pendingOrderQuantity) : null;
+        const receiptRequest = await getReceiptRequest(file, requestServiceId, requestDescription, requestQuantity);
         const formData = new FormData();
         formData.append("initData", app.initData);
-        formData.append("serviceId", String(selectedServiceId));
-        formData.append("description", orderDescription.value);
-        if (selectedServiceIsPoints) {
-          formData.append("quantity", String(pendingOrderQuantity));
+        formData.append("serviceId", requestServiceId);
+        formData.append("description", requestDescription);
+        if (requestQuantity !== null) {
+          formData.append("quantity", requestQuantity);
         }
+        formData.append("requestId", receiptRequest.requestId);
         formData.append("receipt", file);
 
         const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/customer-upload-receipt", {
@@ -1234,6 +1271,8 @@
           }
         }
 
+        pendingReceiptRequests.delete(receiptRequest.storageKey);
+        try { sessionStorage.removeItem(receiptRequest.storageKey); } catch {}
         receiptFile.disabled = true;
         uploadReceiptButton.disabled = true;
         paymentScreen.classList.add("hidden");
@@ -1241,6 +1280,8 @@
       } catch (error) {
         paymentStatus.textContent = error.message || "خطا در ارسال رسید.";
         uploadReceiptButton.disabled = false;
+      } finally {
+        receiptUploadInFlight = false;
       }
     });
 
