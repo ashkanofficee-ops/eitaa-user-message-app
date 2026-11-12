@@ -840,7 +840,7 @@
     }
 
     function updatePricePerPointVisibility() {
-      servicePricePerPoint.hidden = !serviceName.value.trim().includes("امتیاز وام رسالت");
+      servicePricePerPoint.hidden = !(serviceName.value.trim().includes("امتیاز") && serviceName.value.trim().includes("رسالت"));
       if (servicePricePerPoint.hidden) servicePricePerPoint.value = "";
     }
 
@@ -931,10 +931,11 @@
         return;
       }
       const pricePerPointValue = servicePricePerPoint.value.trim();
-      const pricePerPoint = name.includes("امتیاز وام رسالت")
+      const isResalatPoints = name.includes("امتیاز") && name.includes("رسالت");
+      const pricePerPoint = isResalatPoints
         ? (pricePerPointValue === "" ? null : Number(pricePerPointValue))
         : null;
-      if (pricePerPoint !== null && (!Number.isFinite(pricePerPoint) || pricePerPoint < 0)) {
+      if (isResalatPoints && (pricePerPoint === null || !Number.isFinite(pricePerPoint) || pricePerPoint <= 0)) {
         servicesStatus.textContent = "لطفاً قیمت معتبر برای هر امتیاز وارد کنید.";
         return;
       }
