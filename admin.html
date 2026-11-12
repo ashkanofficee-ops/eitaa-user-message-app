@@ -188,8 +188,14 @@
     .orders-actions button,.order-update-button { background:#123D32; color:white; border:0; border-radius:9px; padding:10px 14px; font-family:inherit; cursor:pointer; }
     .orders-actions button.secondary { background:#EAF2EE; color:#123D32; }
     .orders-status { color:#68776F; font-size:13px; margin:10px 0; }
-    .orders-table-wrap { width:100%; overflow-x:auto; }
+    .orders-table-wrap { width:100%; max-height:520px; overflow:auto; }
     .orders-table { width:100%; border-collapse:collapse; min-width:1050px; text-align:right; }
+    .orders-table thead th { position:sticky; top:0; z-index:2; }
+    .orders-filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0; }
+    .orders-search,.orders-filter-select { padding:11px 12px; border:1px solid #DCE6E0; border-radius:10px; font-family:inherit; font-size:13px; background:#FFFFFF; color:#183D32; }
+    .orders-search { width:100%; max-width:360px; }
+    .orders-filter-select { min-width:180px; }
+    .orders-new-count { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:20px; background:#FFF3DF; color:#946000; font-size:12px; font-weight:700; }
     .orders-table th,.orders-table td { padding:11px 9px; border-bottom:1px solid #E7EEE9; font-size:12px; vertical-align:middle; }
     .orders-table th { color:#123D32; background:#F4F7F5; font-weight:700; }
     .orders-table select { min-width:145px; padding:8px; border:1px solid #DCE6E0; border-radius:8px; font-family:inherit; }
@@ -476,12 +482,28 @@
         </div>
       </div>
 
+      <div class="orders-filters">
+        <input type="search" class="orders-search" id="ordersSearch"
+          placeholder="جست‌وجو با نام مشتری یا شماره سفارش" aria-label="جست‌وجوی سفارش‌ها">
+        <select class="orders-filter-select" id="ordersStatusFilter" aria-label="فیلتر وضعیت سفارش">
+          <option value="all">همه وضعیت‌ها</option>
+          <option value="pending">در انتظار بررسی</option>
+          <option value="awaiting_payment">در انتظار پرداخت</option>
+          <option value="paid">پرداخت‌شده</option>
+          <option value="in_progress">در حال انجام</option>
+          <option value="completed">تکمیل‌شده</option>
+          <option value="rejected">ردشده</option>
+          <option value="cancelled">لغوشده</option>
+        </select>
+        <span class="orders-new-count" id="newOrdersCount">سفارش جدید: ۰</span>
+      </div>
       <div class="orders-status" id="ordersStatus">در حال آماده‌سازی فهرست سفارش‌ها...</div>
       <div class="orders-table-wrap">
         <table class="orders-table">
           <thead>
             <tr>
               <th>شناسه</th>
+              <th>نام مشتری</th>
               <th>شناسه مشتری ایتا</th>
               <th>خدمت</th>
               <th>توضیحات</th>
@@ -493,7 +515,7 @@
             </tr>
           </thead>
           <tbody id="ordersTableBody">
-            <tr><td colspan="9" class="customers-empty">هنوز سفارشی دریافت نشده است.</td></tr>
+            <tr><td colspan="10" class="customers-empty">هنوز سفارشی دریافت نشده است.</td></tr>
           </tbody>
         </table>
       </div>
@@ -949,7 +971,11 @@
     const ordersPanel = document.getElementById("ordersPanel");
     const ordersStatus = document.getElementById("ordersStatus");
     const ordersTableBody = document.getElementById("ordersTableBody");
+    const ordersSearch = document.getElementById("ordersSearch");
+    const ordersStatusFilter = document.getElementById("ordersStatusFilter");
+    const newOrdersCount = document.getElementById("newOrdersCount");
     let ordersData = [];
+    let ordersCustomerNames = new Map();
 
     const orderDetailsPanel = document.getElementById("orderDetailsPanel");
     const orderDetailsGrid = document.getElementById("orderDetailsGrid");
@@ -1071,16 +1097,31 @@
 
     function renderOrders() {
       ordersTableBody.innerHTML = "";
+      const query = ordersSearch.value.trim().toLowerCase();
+      const selectedStatus = ordersStatusFilter.value;
+      const filteredOrders = ordersData.filter(order => {
+        const customerName = ordersCustomerNames.get(String(order.eitaa_user_id)) || "";
+        const orderId = String(order.id ?? "").toLowerCase();
+        const customerId = String(order.eitaa_user_id ?? "").toLowerCase();
+        const matchesSearch = !query || orderId.includes(query) ||
+          customerId.includes(query) || customerName.toLowerCase().includes(query);
+        const matchesStatus = selectedStatus === "all" || order.status === selectedStatus;
+        return matchesSearch && matchesStatus;
+      });
 
-      if (ordersData.length === 0) {
+      const newCount = ordersData.filter(order =>
+        order.status === "pending" || order.status === "awaiting_payment"
+      ).length;
+      newOrdersCount.textContent = "سفارش جدید: " + newCount.toLocaleString("fa-IR");
+
+      if (filteredOrders.length === 0) {
         ordersTableBody.innerHTML =
-          '<tr><td colspan="9" class="customers-empty">هنوز سفارشی ثبت نشده است.</td></tr>';
+          '<tr><td colspan="10" class="customers-empty">سفارشی با این مشخصات پیدا نشد.</td></tr>';
         return;
       }
 
-      ordersData.forEach(order => {
+      filteredOrders.forEach(order => {
         const row = document.createElement("tr");
-
         const addCell = (value, className = "") => {
           const cell = document.createElement("td");
           cell.textContent = value == null || value === "" ? "—" : String(value);
@@ -1090,14 +1131,11 @@
         };
 
         addCell(order.id);
+        addCell(ordersCustomerNames.get(String(order.eitaa_user_id)) || "—");
         addCell(order.eitaa_user_id);
         addCell(order.service_name || ("خدمت #" + (order.service_id ?? "—")));
         addCell(order.description, "order-description");
-        addCell(
-          order.price == null
-            ? "—"
-            : Number(order.price).toLocaleString("fa-IR")
-        );
+        addCell(order.price == null ? "—" : Number(order.price).toLocaleString("fa-IR"));
 
         const receiptCell = document.createElement("td");
         if (order.receipt_url) {
@@ -1112,60 +1150,44 @@
           receiptCell.textContent = "بدون رسید";
         }
         row.appendChild(receiptCell);
-
         addCell(formatOrderDate(order.created_at));
 
         const statusCell = document.createElement("td");
         const statusSelect = document.createElement("select");
         statusSelect.setAttribute("aria-label", "وضعیت سفارش " + order.id);
-
         allowedOrderStatuses.forEach(status => {
           const option = document.createElement("option");
           option.value = status;
           option.textContent = orderStatusLabels[status];
           statusSelect.appendChild(option);
         });
-
-        statusSelect.value = allowedOrderStatuses.includes(order.status)
-          ? order.status
-          : "pending";
+        statusSelect.value = allowedOrderStatuses.includes(order.status) ? order.status : "pending";
+        statusSelect.addEventListener("change", async () => {
+          const previousStatus = order.status;
+          statusSelect.disabled = true;
+          try {
+            await callAdminOrders({ action: "update", id: order.id, status: statusSelect.value });
+            order.status = statusSelect.value;
+            ordersStatus.textContent = "وضعیت سفارش شماره " + order.id + " با موفقیت به‌روزرسانی شد.";
+            renderOrders();
+          } catch (error) {
+            statusSelect.value = previousStatus;
+            ordersStatus.textContent = error.message || "به‌روزرسانی وضعیت سفارش ناموفق بود.";
+          } finally {
+            statusSelect.disabled = false;
+          }
+        });
         statusCell.appendChild(statusSelect);
         row.appendChild(statusCell);
 
         const actionCell = document.createElement("td");
-        const updateButton = document.createElement("button");
-        updateButton.type = "button";
-        updateButton.className = "order-update-button";
-        updateButton.textContent = "ذخیره وضعیت";
-        updateButton.addEventListener("click", async () => {
-          updateButton.disabled = true;
-          updateButton.textContent = "در حال ذخیره...";
-          try {
-            await callAdminOrders({
-              action: "update",
-              id: order.id,
-              status: statusSelect.value
-            });
-            order.status = statusSelect.value;
-            ordersStatus.textContent = "وضعیت سفارش شماره " + order.id + " با موفقیت به‌روزرسانی شد.";
-          } catch (error) {
-            ordersStatus.textContent = error.message || "به‌روزرسانی وضعیت سفارش ناموفق بود.";
-          } finally {
-            updateButton.disabled = false;
-            updateButton.textContent = "ذخیره وضعیت";
-          }
-        });
-        actionCell.appendChild(updateButton);
-
         const detailsButton = document.createElement("button");
         detailsButton.type = "button";
         detailsButton.className = "order-details-button";
         detailsButton.textContent = "جزئیات";
         detailsButton.addEventListener("click", () => showOrderDetails(order));
         actionCell.appendChild(detailsButton);
-
         row.appendChild(actionCell);
-
         ordersTableBody.appendChild(row);
       });
     }
@@ -1179,17 +1201,43 @@
         ordersData = Array.isArray(result.orders) ? result.orders : [];
         document.getElementById("orderCount").textContent =
           result.total ?? ordersData.length;
+
+        try {
+          const token = sessionStorage.getItem("admin_token");
+          const customersResponse = await fetch(
+            SUPABASE_URL + "/functions/v1/admin-subscribers",
+            {
+              method: "POST",
+              headers: {
+                "apikey": SUPABASE_PUBLISHABLE_KEY,
+                "Authorization": "Bearer " + token
+              }
+            }
+          );
+          const customersResult = await customersResponse.json();
+          if (customersResponse.ok && customersResult.success && Array.isArray(customersResult.subscribers)) {
+            ordersCustomerNames = new Map(customersResult.subscribers.map(customer => [
+              String(customer.eitaa_user_id),
+              [customer.first_name, customer.last_name].filter(Boolean).join(" ")
+            ]));
+          }
+        } catch (customerError) {
+          ordersCustomerNames = new Map();
+        }
+
         ordersStatus.textContent =
           "تعداد سفارش‌های ثبت‌شده: " + (result.total ?? ordersData.length);
         renderOrders();
       } catch (error) {
         ordersStatus.textContent = error.message || "دریافت سفارش‌ها ناموفق بود.";
         ordersTableBody.innerHTML =
-          '<tr><td colspan="9" class="customers-empty">بارگذاری سفارش‌ها با خطا مواجه شد.</td></tr>';
+          '<tr><td colspan="10" class="customers-empty">بارگذاری سفارش‌ها با خطا مواجه شد.</td></tr>';
       }
     }
 
     document.getElementById("refreshOrders").addEventListener("click", loadOrders);
+    ordersSearch.addEventListener("input", renderOrders);
+    ordersStatusFilter.addEventListener("change", renderOrders);
     document.getElementById("closeOrderDetails").addEventListener("click", function() {
       orderDetailsPanel.hidden = true;
     });
