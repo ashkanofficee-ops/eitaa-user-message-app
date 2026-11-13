@@ -578,7 +578,20 @@
       .menu { gap: 9px; }
       .menu-card { padding: 14px 11px; }
     }
-  </style>
+  
+/* Account and support only */
+.support-box{background:#fff;border:1px solid #dce8e3;border-radius:18px;padding:18px;margin:16px 0;text-align:right}
+.support-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px}
+.support-history{display:flex;flex-direction:column;gap:12px;max-height:55vh;overflow:auto;padding:8px 2px;overscroll-behavior:contain}
+.support-message{background:#eef5f2;border:1px solid #dce8e3;border-radius:14px;padding:12px;max-width:90%;align-self:flex-start;overflow-wrap:anywhere;white-space:pre-wrap}
+.support-message.mine{background:#e4f5ec;align-self:flex-end;border-color:#b9dfcc}
+.support-message small{display:block;font-size:11px;color:#61766e;margin-top:8px}
+.support-compose{width:100%;box-sizing:border-box;min-height:100px;resize:vertical;margin:12px 0;border:1px solid #cbded4;border-radius:12px;padding:12px;font:inherit}
+.support-status{min-height:24px;color:#51685f;font-size:13px;margin:10px 0}
+.support-account{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;margin:0}
+.support-account dd{margin:0;overflow-wrap:anywhere}
+.support-box button{cursor:pointer}.support-box button:disabled{cursor:wait;opacity:.6}
+</style>
 </head>
 <body>
   <main class="page">
@@ -611,12 +624,12 @@
           <strong>سفارش‌های من</strong>
           <span>مشاهده و پیگیری سفارش‌ها</span>
         </button>
-        <button class="menu-card" type="button" disabled>
+        <button id="supportButton" class="menu-card" type="button">
           <span class="symbol">✉</span>
           <strong>گفت‌وگو با ما</strong>
           <span>ارتباط خصوصی با مدیریت</span>
         </button>
-        <button class="menu-card" type="button" disabled>
+        <button id="accountButton" class="menu-card" type="button">
           <span class="symbol">▣</span>
           <strong>حساب کاربری</strong>
           <span>اطلاعات حساب مشتری</span>
@@ -624,12 +637,27 @@
       </div>
 
       <div class="section-note">
-        بخش مشاهده خدمات فعال شده است. بخش‌های پیگیری سفارش، گفت‌وگو و حساب کاربری
-        در مراحل بعدی به سامانه مدیریت متصل خواهند شد.
+        از منوی بالا، خدمت موردنظر یا بخش ارتباط با مدیریت را انتخاب کنید.
       </div>
       <div class="footer">کافی‌نت اشکان</div>
     </section>
 
+    <section id="accountScreen" class="hidden">
+      <header class="header"><h1>حساب کاربری</h1><p>اطلاعات حساب ایتای شما</p></header>
+      <div class="support-box"><div id="accountStatus" class="support-status" role="status"></div><dl id="accountInfo" class="support-account"></dl><button id="accountRefresh" class="back-button" type="button">دریافت دوباره اطلاعات</button></div>
+      <button id="accountBack" class="back-button" type="button">بازگشت به صفحه اصلی</button>
+    </section>
+    <section id="supportScreen" class="hidden">
+      <header class="header"><h1>گفت‌وگو با ما</h1><p>ارتباط خصوصی با مدیریت کافی‌نت اشکان</p></header>
+      <div class="support-box">
+        <div class="support-toolbar"><strong>پیام‌های شما و مدیریت</strong><button id="supportRefresh" class="back-button" type="button">به‌روزرسانی</button></div>
+        <button id="supportOlder" class="back-button hidden" type="button">پیام‌های قدیمی‌تر</button>
+        <div id="supportHistory" class="support-history" role="log" aria-label="تاریخچه گفت‌وگو"></div>
+        <div id="supportStatus" class="support-status" role="status" aria-live="polite"></div>
+        <form id="supportForm"><label for="supportText">متن پیام</label><textarea id="supportText" class="support-compose" maxlength="2000" required placeholder="پیامتان را برای مدیریت بنویسید…"></textarea><button id="supportSend" class="primary" type="submit">ارسال پیام</button></form>
+      </div>
+      <button id="supportBack" class="back-button" type="button">بازگشت به صفحه اصلی</button>
+    </section>
     <section id="servicesScreen" class="hidden">
       <header class="header">
         <h1>کافی‌نت اشکان</h1>
@@ -1293,6 +1321,54 @@
     document.getElementById("successHomeButton").addEventListener("click", function () {
       successScreen.classList.add("hidden");
       homeScreen.classList.remove("hidden");
+    });
+
+    // Added account/support; existing order flow remains intact.
+    
+    function supportDate(value) {const d=new Date(value);return Number.isNaN(d.getTime())?"":d.toLocaleString("fa-IR");}
+    function supportRender(container,messages,ownSender) {
+      container.replaceChildren();
+      for(const m of messages){
+        const row=document.createElement("div");row.className="support-message"+(m.sender===ownSender?" mine":"");
+        const label=document.createElement("strong");label.textContent=m.sender==="admin"?"مدیریت":"مشتری";
+        const text=document.createElement("div");text.textContent=m.body;
+        const date=document.createElement("small");date.textContent=supportDate(m.created_at);
+        row.append(label,text,date);container.append(row);
+      }
+    }
+    function supportMerge(oldRows,newRows){const rows=new Map(oldRows.map(m=>[String(m.id),m]));for(const m of newRows)rows.set(String(m.id),m);return [...rows.values()].sort((a,b)=>BigInt(a.id)<BigInt(b.id)?-1:BigInt(a.id)>BigInt(b.id)?1:0);}
+
+    const supportScreen=document.getElementById("supportScreen"), accountScreen=document.getElementById("accountScreen");
+    const supportHistory=document.getElementById("supportHistory"),supportStatus=document.getElementById("supportStatus"),supportText=document.getElementById("supportText"),supportSend=document.getElementById("supportSend"),supportOlder=document.getElementById("supportOlder");
+    let supportRows=[],supportLoading=false,supportSending=false,supportPending=null;
+    async function supportCall(payload){
+      if(!app?.initData)throw new Error("لطفاً برنامه را از داخل ایتا باز کنید.");
+      const response=await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/customer-support",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,initData:app.initData}),signal:AbortSignal.timeout(15000)});
+      const result=await response.json();if(!response.ok||!result.success)throw new Error(result.error||"خطا در ارتباط با سرور");return result;
+    }
+    async function loadAccount(){
+      const state=document.getElementById("accountStatus"), info=document.getElementById("accountInfo"),refresh=document.getElementById("accountRefresh");
+      refresh.disabled=true;state.textContent="در حال دریافت اطلاعات…";info.replaceChildren();
+      try{const {account}=await supportCall({action:"account"});for(const [key,value] of [["نام",[account.first_name,account.last_name].filter(Boolean).join(" ")||"ثبت نشده"],["نام کاربری",account.username?"@"+account.username:"ثبت نشده"],["شناسه ایتا",account.id]]){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=key;dd.textContent=value;info.append(dt,dd);}state.textContent="اطلاعات تأییدشدهٔ حساب ایتای شما";}catch(e){state.textContent=e.message;}finally{refresh.disabled=false;}
+    }
+    async function loadSupport(older=false){
+      if(supportLoading||supportSending)return;supportLoading=true;supportSend.disabled=true;supportOlder.disabled=true;supportStatus.textContent="در حال دریافت پیام‌ها…";
+      try{const result=await supportCall({action:"list",...(older&&supportRows.length?{before:String(supportRows[0].id)}:{})});
+        supportRows=older?supportMerge(supportRows,result.messages):result.messages;supportRender(supportHistory,supportRows,"customer");supportOlder.classList.toggle("hidden",!result.has_more);
+        supportStatus.textContent=supportRows.length?"پاسخ‌های مدیریت در همین صفحه نمایش داده می‌شوند.":"هنوز پیامی ندارید. اولین پیامتان را بنویسید.";if(!older)supportHistory.scrollTop=supportHistory.scrollHeight;
+      }catch(e){supportStatus.textContent=e.message;}finally{supportLoading=false;supportSend.disabled=false;supportOlder.disabled=false;}
+    }
+    document.getElementById("accountButton").addEventListener("click",()=>{homeScreen.classList.add("hidden");accountScreen.classList.remove("hidden");loadAccount();});
+    document.getElementById("supportButton").addEventListener("click",()=>{homeScreen.classList.add("hidden");supportScreen.classList.remove("hidden");loadSupport();});
+    for(const [button,screen] of [["accountBack",accountScreen],["supportBack",supportScreen]])document.getElementById(button).addEventListener("click",()=>{screen.classList.add("hidden");homeScreen.classList.remove("hidden");});
+    document.getElementById("accountRefresh").addEventListener("click",loadAccount);
+    document.getElementById("supportRefresh").addEventListener("click",()=>loadSupport());
+    supportOlder.addEventListener("click",()=>loadSupport(true));
+    document.getElementById("supportForm").addEventListener("submit",async event=>{
+      event.preventDefault();if(supportSending||supportLoading)return;const text=supportText.value.trim();if(!text||text.length>2000)return;
+      if(!supportPending||supportPending.text!==text)supportPending={text,request_id:crypto.randomUUID()};
+      supportSending=true;supportSend.disabled=true;supportText.disabled=true;supportStatus.textContent="در حال ارسال…";
+      try{const result=await supportCall({action:"send",...supportPending});supportRows=supportMerge(supportRows,[result.message]);supportRender(supportHistory,supportRows,"customer");supportHistory.scrollTop=supportHistory.scrollHeight;supportText.value="";supportPending=null;supportStatus.textContent="پیام شما ارسال شد.";}catch(e){supportStatus.textContent=e.message+" متن پیام حفظ شده؛ می‌توانید دوباره ارسال کنید.";}finally{supportSending=false;supportSend.disabled=false;supportText.disabled=false;}
     });
   </script>
 </body>
