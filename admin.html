@@ -325,7 +325,20 @@
         padding: 24px;
       }
     }
-  </style>
+  
+/* Account and support only */
+.support-box{background:#fff;border:1px solid #dce8e3;border-radius:18px;padding:18px;margin:16px 0;text-align:right}
+.support-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px}
+.support-history{display:flex;flex-direction:column;gap:12px;max-height:55vh;overflow:auto;padding:8px 2px;overscroll-behavior:contain}
+.support-message{background:#eef5f2;border:1px solid #dce8e3;border-radius:14px;padding:12px;max-width:90%;align-self:flex-start;overflow-wrap:anywhere;white-space:pre-wrap}
+.support-message.mine{background:#e4f5ec;align-self:flex-end;border-color:#b9dfcc}
+.support-message small{display:block;font-size:11px;color:#61766e;margin-top:8px}
+.support-compose{width:100%;box-sizing:border-box;min-height:100px;resize:vertical;margin:12px 0;border:1px solid #cbded4;border-radius:12px;padding:12px;font:inherit}
+.support-status{min-height:24px;color:#51685f;font-size:13px;margin:10px 0}
+.support-account{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;margin:0}
+.support-account dd{margin:0;overflow-wrap:anywhere}
+.support-box button{cursor:pointer}.support-box button:disabled{cursor:wait;opacity:.6}
+</style>
 </head>
 
 <body>
@@ -422,6 +435,11 @@
     </section>
 
 
+    <section id="supportPanel" class="support-box" hidden>
+      <div class="support-toolbar"><h2>گفت‌وگوهای مشتریان</h2><button id="adminSupportBack" type="button" class="secondary">بازگشت</button><button id="adminSupportRefresh" type="button">به‌روزرسانی فهرست</button></div>
+      <div id="adminSupportStatus" class="support-status" role="status"></div><div id="supportThreads"></div><button id="supportThreadsMore" type="button" hidden>گفت‌وگوهای بیشتر</button>
+      <div id="supportConversation" hidden><h3 id="supportCustomerTitle"></h3><button id="adminSupportOlder" type="button" hidden>پیام‌های قدیمی‌تر</button><button id="adminHistoryRefresh" type="button">به‌روزرسانی پیام‌ها</button><div id="adminSupportHistory" class="support-history" role="log" aria-label="تاریخچه گفت‌وگو"></div><form id="adminSupportForm"><label for="adminSupportText">پاسخ به مشتری</label><textarea id="adminSupportText" class="support-compose" maxlength="2000" required></textarea><button id="adminSupportSend" type="submit">ارسال پاسخ</button></form></div>
+    </section>
     <section class="customers-panel" id="customersPanel" hidden>
       <div class="customers-toolbar">
         <h2 class="section-title" style="margin-bottom:0;">مدیریت مشتریان</h2>
@@ -1431,6 +1449,54 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
     customersSearch.addEventListener("input", renderCustomers);
+
+
+    
+    function supportDate(value) {const d=new Date(value);return Number.isNaN(d.getTime())?"":d.toLocaleString("fa-IR");}
+    function supportRender(container,messages,ownSender) {
+      container.replaceChildren();
+      for(const m of messages){
+        const row=document.createElement("div");row.className="support-message"+(m.sender===ownSender?" mine":"");
+        const label=document.createElement("strong");label.textContent=m.sender==="admin"?"مدیریت":"مشتری";
+        const text=document.createElement("div");text.textContent=m.body;
+        const date=document.createElement("small");date.textContent=supportDate(m.created_at);
+        row.append(label,text,date);container.append(row);
+      }
+    }
+    function supportMerge(oldRows,newRows){const rows=new Map(oldRows.map(m=>[String(m.id),m]));for(const m of newRows)rows.set(String(m.id),m);return [...rows.values()].sort((a,b)=>BigInt(a.id)<BigInt(b.id)?-1:BigInt(a.id)>BigInt(b.id)?1:0);}
+
+    const supportPanel=document.getElementById("supportPanel"),supportThreads=document.getElementById("supportThreads"),adminSupportStatus=document.getElementById("adminSupportStatus"),adminSupportHistory=document.getElementById("adminSupportHistory"),adminSupportText=document.getElementById("adminSupportText"),adminSupportSend=document.getElementById("adminSupportSend"),adminSupportOlder=document.getElementById("adminSupportOlder"),supportThreadsMore=document.getElementById("supportThreadsMore");
+    let threadOffset=0,threadsBusy=false,activeSupportUser=null,adminSupportRows=[],adminSupportBusy=false,adminSupportSending=false,adminPending=null,threadEpoch=0;
+    const supportDrafts=new Map();
+    async function adminSupportCall(payload){
+      const token=sessionStorage.getItem("admin_token");if(!token){showLogin();throw new Error("دوباره وارد مدیریت شوید.");}
+      const response=await fetch(SUPABASE_URL+"/functions/v1/admin-support",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_PUBLISHABLE_KEY,"Authorization":"Bearer "+token},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
+      const result=await response.json();if(response.status===401)showLogin();if(!response.ok||!result.success)throw new Error(result.error||"خطا در ارتباط با سرور");return result;
+    }
+    async function loadSupportThreads(more=false){
+      if(threadsBusy)return;threadsBusy=true;supportThreadsMore.disabled=true;adminSupportStatus.textContent="در حال دریافت گفت‌وگوها…";
+      try{const result=await adminSupportCall({action:"threads",offset:more?threadOffset:0});if(!more){supportThreads.replaceChildren();threadOffset=0;}
+        for(const t of result.threads){const button=document.createElement("button");button.type="button";button.className="support-compose";button.style.minHeight="auto";button.style.textAlign="right";button.textContent=([t.first_name,t.last_name].filter(Boolean).join(" ")||t.user_id)+(t.username?" (@"+t.username+")":"")+" — "+t.last_body.slice(0,80);button.addEventListener("click",()=>openSupportThread(t));supportThreads.append(button);}threadOffset+=result.threads.length;supportThreadsMore.hidden=!result.has_more;adminSupportStatus.textContent=threadOffset?"برای مشاهده پیام‌ها، مشتری را انتخاب کنید.":"هنوز گفت‌وگویی ثبت نشده است.";
+      }catch(e){adminSupportStatus.textContent=e.message;}finally{threadsBusy=false;supportThreadsMore.disabled=false;}
+    }
+    function openSupportThread(t){
+      if(adminSupportSending)return;if(activeSupportUser)supportDrafts.set(activeSupportUser,{text:adminSupportText.value,pending:adminPending});
+      activeSupportUser=t.user_id;threadEpoch++;adminSupportBusy=false;adminSupportRows=[];adminSupportHistory.replaceChildren();const draft=supportDrafts.get(t.user_id);adminSupportText.value=draft?.text||"";adminPending=draft?.pending||null;
+      document.getElementById("supportConversation").hidden=false;document.getElementById("supportCustomerTitle").textContent=([t.first_name,t.last_name].filter(Boolean).join(" ")||"مشتری")+" · "+t.user_id;loadAdminSupport();
+    }
+    async function loadAdminSupport(older=false){
+      if(adminSupportBusy||adminSupportSending||!activeSupportUser)return;const epoch=threadEpoch,user=activeSupportUser;adminSupportBusy=true;adminSupportSend.disabled=true;adminSupportOlder.disabled=true;
+      try{const result=await adminSupportCall({action:"list",user_id:user,...(older&&adminSupportRows.length?{before:String(adminSupportRows[0].id)}:{})});if(epoch!==threadEpoch)return;adminSupportRows=older?supportMerge(adminSupportRows,result.messages):result.messages;supportRender(adminSupportHistory,adminSupportRows,"admin");adminSupportOlder.hidden=!result.has_more;if(!older)adminSupportHistory.scrollTop=adminSupportHistory.scrollHeight;adminSupportStatus.textContent="گفت‌وگو دریافت شد.";}catch(e){if(epoch===threadEpoch)adminSupportStatus.textContent=e.message;}finally{if(epoch===threadEpoch){adminSupportBusy=false;adminSupportSend.disabled=false;adminSupportOlder.disabled=false;}}
+    }
+    document.querySelector('[data-section="messages"]').addEventListener("click",event=>{event.preventDefault();event.stopImmediatePropagation();supportPanel.hidden=false;supportPanel.scrollIntoView({behavior:"smooth"});loadSupportThreads();},true);
+    document.getElementById("adminSupportBack").addEventListener("click",()=>{supportPanel.hidden=true;window.scrollTo({top:0,behavior:"smooth"});});
+    document.getElementById("adminSupportRefresh").addEventListener("click",()=>loadSupportThreads());
+    supportThreadsMore.addEventListener("click",()=>loadSupportThreads(true));adminSupportOlder.addEventListener("click",()=>loadAdminSupport(true));document.getElementById("adminHistoryRefresh").addEventListener("click",()=>loadAdminSupport());
+    document.getElementById("adminSupportForm").addEventListener("submit",async event=>{
+      event.preventDefault();if(adminSupportSending||adminSupportBusy||!activeSupportUser)return;const text=adminSupportText.value.trim();if(!text||text.length>2000)return;
+      const user=activeSupportUser;if(!adminPending||adminPending.text!==text)adminPending={text,request_id:crypto.randomUUID()};adminSupportSending=true;adminSupportSend.disabled=true;adminSupportText.disabled=true;adminSupportStatus.textContent="در حال ارسال پاسخ…";
+      try{const result=await adminSupportCall({action:"send",user_id:user,...adminPending});adminSupportRows=supportMerge(adminSupportRows,[result.message]);supportRender(adminSupportHistory,adminSupportRows,"admin");adminSupportHistory.scrollTop=adminSupportHistory.scrollHeight;adminSupportText.value="";adminPending=null;supportDrafts.delete(user);adminSupportStatus.textContent="پاسخ ارسال شد.";}catch(e){adminSupportStatus.textContent=e.message+" متن پاسخ حفظ شده است.";}finally{adminSupportSending=false;adminSupportSend.disabled=false;adminSupportText.disabled=false;}
+    });
 
     checkSession();
   </script>
