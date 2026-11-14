@@ -600,7 +600,7 @@
 #supportScreen>.header p{font-size:12px;line-height:1.7}
 #supportScreen>.support-box{display:flex;flex-direction:column;flex:1;min-height:0;padding:12px;margin:10px 0 0}
 #supportScreen .support-toolbar{flex-shrink:0;gap:6px;margin-bottom:6px;font-size:13px}
-#supportScreen .support-history{flex:1;min-height:0;max-height:none;gap:8px;padding:4px 2px}
+#supportScreen .support-history{flex:1;min-height:0;max-height:none;gap:8px;padding:6px;border-radius:12px;background:#eff8f1}
 #supportScreen .support-message{flex-shrink:0;padding:9px 11px}
 #supportScreen .support-message small{margin-top:4px}
 #supportScreen .support-status{flex-shrink:0;min-height:20px;margin:4px 0;font-size:12px;line-height:1.6}
@@ -610,6 +610,10 @@
 #supportScreen #supportSend{min-height:44px;padding:9px 14px}
 #supportScreen #supportOlder{flex-shrink:0;margin:0 0 6px;padding:7px}
 #supportBack{flex-shrink:0;margin-top:8px;padding:10px;min-height:44px}
+
+#supportStatus.is-typing{color:#168b55;font-weight:500;animation:supportTypingPulse 1s ease-in-out infinite}
+@keyframes supportTypingPulse{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){#supportStatus.is-typing{animation:none}}
 </style>
 </head>
 <body>
@@ -1387,7 +1391,23 @@
       event.preventDefault();if(supportSending||supportLoading)return;const text=supportText.value.trim();if(!text||text.length>2000)return;
       const human=document.getElementById("supportHuman").checked;if(!supportPending||supportPending.text!==text||supportPending.request_human!==human)supportPending={text,request_human:human,request_id:crypto.randomUUID()};
       supportSending=true;supportSend.disabled=true;supportText.disabled=true;supportStatus.textContent="در حال ارسال…";
-      try{const result=await supportCall({action:"send",...supportPending});supportRows=supportMerge(supportRows,[result.message,...(result.auto_reply?[result.auto_reply]:[])]);supportRender(supportHistory,supportRows,"customer");supportHistory.scrollTop=supportHistory.scrollHeight;supportText.value="";supportPending=null;supportStatus.textContent=result.auto_reply?"پاسخ خودکار دریافت شد؛ در صورت نیاز می‌توانید پاسخ مدیر را بخواهید.":"پیام شما ارسال شد و برای پاسخ‌گویی مدیر در دسترس است.";}catch(e){supportStatus.textContent=e.message+" متن پیام حفظ شده؛ می‌توانید دوباره ارسال کنید.";}finally{supportSending=false;supportSend.disabled=false;supportText.disabled=false;}
+      try{
+        const result=await supportCall({action:"send",...supportPending});
+        const showTyping=result.auto_reply&&!supportRows.some(m=>String(m.id)===String(result.auto_reply.id));
+        supportRows=supportMerge(supportRows,[result.message]);
+        supportRender(supportHistory,supportRows,"customer");supportHistory.scrollTop=supportHistory.scrollHeight;
+        supportText.value="";supportPending=null;
+        if(showTyping){
+          supportStatus.textContent="در حال نوشتن…";supportStatus.classList.add("is-typing");
+          await new Promise(resolve=>setTimeout(resolve,1500));
+        }
+        if(result.auto_reply){
+          supportRows=supportMerge(supportRows,[result.auto_reply]);
+          supportRender(supportHistory,supportRows,"customer");supportHistory.scrollTop=supportHistory.scrollHeight;
+        }
+        supportStatus.classList.remove("is-typing");
+        supportStatus.textContent=result.auto_reply?"پاسخ خودکار دریافت شد؛ در صورت نیاز می‌توانید پاسخ مدیر را بخواهید.":"پیام شما ارسال شد و برای پاسخ‌گویی مدیر در دسترس است.";
+      }catch(e){supportStatus.textContent=e.message+" متن پیام حفظ شده؛ می‌توانید دوباره ارسال کنید.";}finally{supportStatus.classList.remove("is-typing");supportSending=false;supportSend.disabled=false;supportText.disabled=false;}
     });
   </script>
 </body>
