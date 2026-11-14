@@ -338,6 +338,11 @@
 .support-account{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;margin:0}
 .support-account dd{margin:0;overflow-wrap:anywhere}
 .support-box button{cursor:pointer;font:inherit;font-size:13px;border:1px solid #c8ddd2;border-radius:10px;padding:10px 16px;background:#168b55;color:#fff;line-height:1.7;transition:background .15s}.support-box button:hover{background:#104b38}.support-box button.secondary{background:#fff;color:#104b38}.support-box button.support-compose{background:#f3f8f5;color:#183d32;min-height:auto}.support-toolbar .back-button{margin:0;width:auto}.support-box button:disabled{cursor:wait;opacity:.6}
+
+/* New report section only */
+.report-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:16px 0}.report-filters label{display:grid;gap:6px;font-size:13px}.report-filters input{font:inherit;border:1px solid #c8ddd2;border-radius:10px;padding:10px;background:white;color:#183d32}
+.report-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}.report-summary>div{background:#eff6f2;border:1px solid #dce8e3;border-radius:14px;padding:16px;display:grid;gap:12px}.report-summary span{font-size:13px}.report-summary strong{font-size:22px}.report-group{margin:24px 0}.report-group h3{margin-bottom:12px}
+.auto-faq{margin:18px 0;padding:16px;border:1px solid #c8ddd2;border-radius:14px;background:#f7faf8}.auto-faq summary{cursor:pointer;font-weight:700}.auto-faq-form{display:grid;gap:10px;margin-top:18px}.auto-faq-form input:not([type=checkbox]),.auto-faq-form textarea{width:100%;font:inherit;padding:12px;border:1px solid #c8ddd2;border-radius:10px;resize:vertical;background:#fff}.auto-faq-item{padding:16px;border:1px solid #dce8e3;background:#fff;border-radius:12px;margin:10px 0;overflow-wrap:anywhere}.auto-faq-item p{white-space:pre-wrap;margin:10px 0}.auto-faq-item button{margin:4px}.auto-human{display:flex;gap:8px;align-items:center;font-size:13px;margin:12px 0}.auto-human input{width:auto;accent-color:#168b55}
 </style>
 </head>
 
@@ -435,8 +440,22 @@
     </section>
 
 
+
+    <section id="reportsPanel" class="support-box" hidden>
+      <div class="support-toolbar"><h2>گزارش‌ها</h2><button id="reportsBack" class="secondary" type="button">بازگشت</button></div>
+      <form id="reportsForm" class="report-filters"><label>از تاریخ (میلادی)<input id="reportFrom" type="date" min="2000-01-01"></label><label>تا تاریخ (میلادی)<input id="reportTo" type="date" min="2000-01-01"></label><button id="reportsLoad" type="submit">دریافت گزارش</button><button id="reportsExport" type="button" disabled>خروجی CSV</button></form>
+      <p class="support-status">تاریخ خالی یعنی بدون محدودیت؛ مرز روزها بر اساس ساعت تهران است. بازه بر اساس زمان ثبت رکورد محاسبه می‌شود. مبلغ سفارش‌ها و پرداخت‌ها جدا هستند و با هم جمع نمی‌شوند.</p>
+      <div id="reportsStatus" role="status" class="support-status"></div><div id="reportsBody"></div>
+    </section>
     <section id="supportPanel" class="support-box" hidden>
       <div class="support-toolbar"><h2>گفت‌وگوهای مشتریان</h2><button id="adminSupportBack" type="button" class="secondary">بازگشت</button><button id="adminSupportRefresh" type="button">به‌روزرسانی فهرست</button></div>
+
+      <details class="auto-faq" id="faqManager"><summary>پاسخ‌گوی خودکار و سؤال‌های نیازمند بررسی</summary>
+       <p class="support-status">فقط پاسخ فعال و تأییدشده ارسال می‌شود. هر عبارت به یک پاسخ اختصاص دارد. متن سؤال مشتری بدون تأیید شما به پاسخ آماده تبدیل نمی‌شود.</p>
+       <div class="support-toolbar"><button id="faqRefresh" type="button">فهرست پاسخ‌ها</button><button id="faqUnknown" type="button">سؤال‌های بی‌پاسخ</button><button id="faqNew" type="button" class="secondary">پاسخ تازه</button></div>
+       <div id="faqStatus" class="support-status" role="status"></div><div id="faqItems"></div><button id="faqMore" type="button" hidden>موارد بیشتر</button>
+       <form id="faqForm" class="auto-faq-form"><h3 id="faqFormTitle">پاسخ تازه</h3><label for="faqQuestion">سؤال اصلی</label><input id="faqQuestion" maxlength="300" required><label for="faqVariants">عبارت‌های مشابه (هر سطر یک عبارت، حداکثر ۲۰ سطر)</label><textarea id="faqVariants" rows="3"></textarea><label for="faqAnswer">پاسخ تأییدشدهٔ شما</label><textarea id="faqAnswer" maxlength="2000" rows="4" required></textarea><label class="auto-human"><input id="faqActive" type="checkbox"> این پاسخ را تأیید و فعال می‌کنم</label><button id="faqSave" type="submit">ذخیره پاسخ</button></form>
+      </details>
       <div id="adminSupportStatus" class="support-status" role="status"></div><div id="supportThreads"></div><button id="supportThreadsMore" type="button" hidden>گفت‌وگوهای بیشتر</button>
       <div id="supportConversation" hidden><h3 id="supportCustomerTitle"></h3><button id="adminSupportOlder" type="button" hidden>پیام‌های قدیمی‌تر</button><button id="adminHistoryRefresh" type="button">به‌روزرسانی پیام‌ها</button><div id="adminSupportHistory" class="support-history" role="log" aria-label="تاریخچه گفت‌وگو"></div><form id="adminSupportForm"><label for="adminSupportText">پاسخ به مشتری</label><textarea id="adminSupportText" class="support-compose" maxlength="2000" required></textarea><button id="adminSupportSend" type="submit">ارسال پاسخ</button></form></div>
     </section>
@@ -1457,7 +1476,7 @@
       container.replaceChildren();
       for(const m of messages){
         const row=document.createElement("div");row.className="support-message"+(m.sender===ownSender?" mine":"");
-        const label=document.createElement("strong");label.textContent=m.sender==="admin"?"مدیریت":"مشتری";
+        const label=document.createElement("strong");label.textContent=m.auto_reply_to?"پاسخ‌گوی خودکار":m.sender==="admin"?"مدیریت":"مشتری";
         const text=document.createElement("div");text.textContent=m.body;
         const date=document.createElement("small");date.textContent=supportDate(m.created_at);
         row.append(label,text,date);container.append(row);
@@ -1496,6 +1515,43 @@
       event.preventDefault();if(adminSupportSending||adminSupportBusy||!activeSupportUser)return;const text=adminSupportText.value.trim();if(!text||text.length>2000)return;
       const user=activeSupportUser;if(!adminPending||adminPending.text!==text)adminPending={text,request_id:crypto.randomUUID()};adminSupportSending=true;adminSupportSend.disabled=true;adminSupportText.disabled=true;adminSupportStatus.textContent="در حال ارسال پاسخ…";
       try{const result=await adminSupportCall({action:"send",user_id:user,...adminPending});adminSupportRows=supportMerge(adminSupportRows,[result.message]);supportRender(adminSupportHistory,adminSupportRows,"admin");adminSupportHistory.scrollTop=adminSupportHistory.scrollHeight;adminSupportText.value="";adminPending=null;supportDrafts.delete(user);adminSupportStatus.textContent="پاسخ ارسال شد.";}catch(e){adminSupportStatus.textContent=e.message+" متن پاسخ حفظ شده است.";}finally{adminSupportSending=false;adminSupportSend.disabled=false;adminSupportText.disabled=false;}
+    });
+
+
+    // Reporting is read-only; existing payment/order flows are untouched.
+    const reportsPanel=document.getElementById("reportsPanel"),reportsStatus=document.getElementById("reportsStatus"),reportsBody=document.getElementById("reportsBody"),reportsLoad=document.getElementById("reportsLoad"),reportsExport=document.getElementById("reportsExport");
+    let reportResult=null,reportsBusy=false;
+    const reportLabels={pending:"در انتظار بررسی",awaiting_payment:"در انتظار بررسی رسید",paid:"پرداخت تأیید شده",in_progress:"در حال انجام",completed:"تکمیل شده",rejected:"رد شده",cancelled:"لغو شده",approved:"تأیید شده"};
+    function reportNumber(value){return new Intl.NumberFormat("fa-IR",{maximumFractionDigits:2}).format(value);}
+    function reportTable(title,rows){const box=document.createElement("div");box.className="report-group";const h=document.createElement("h3");h.textContent=title;box.append(h);if(!rows.length){const p=document.createElement("p");p.textContent="رکوردی در این بازه وجود ندارد.";box.append(p);return box;}
+      const table=document.createElement("table");table.className="customers-table";const head=document.createElement("tr");for(const value of ["عنوان","تعداد","مبلغ (تومان)"]){const th=document.createElement("th");th.textContent=value;head.append(th);}const thead=document.createElement("thead");thead.append(head);table.append(thead);const tbody=document.createElement("tbody");for(const row of rows){const tr=document.createElement("tr");for(const value of [row.label,reportNumber(row.count),reportNumber(row.amount)]){const td=document.createElement("td");td.textContent=value;tr.append(td);}tbody.append(tr);}table.append(tbody);const scroll=document.createElement("div");scroll.className="customers-table-wrap";scroll.append(table);box.append(scroll);return box;
+    }
+    function renderReport(r){reportsBody.replaceChildren();const cards=document.createElement("div");cards.className="report-summary";for(const [label,value] of [["کل مشتریان (تمام زمان‌ها)",r.customers_total],["مشتریان ثبت‌شده در بازه",r.customers_registered],["سفارش‌های ثبت‌شده در بازه",r.orders_total],["ارزش سفارش‌ها در بازه (تومان)",r.orders_value],["پیام‌های گفت‌وگو در بازه",r.messages_in_period]]){const card=document.createElement("div"),title=document.createElement("span"),number=document.createElement("strong");title.textContent=label;number.textContent=reportNumber(value);card.append(title,number);cards.append(card);}reportsBody.append(cards,reportTable("سفارش‌ها بر اساس وضعیت",r.orders_by_status.map(x=>({...x,label:reportLabels[x.status]||x.status||"بدون وضعیت"}))),reportTable("پرداخت‌ها بر اساس وضعیت",r.payments_by_status.map(x=>({...x,label:reportLabels[x.status]||x.status||"بدون وضعیت"}))),reportTable("۵۰ خدمت پرتکرار در سفارش‌ها",r.services.map(x=>({...x,label:x.name||"بدون نام"}))));}
+    async function loadReport(){if(reportsBusy)return;reportsBusy=true;reportsLoad.disabled=true;reportsExport.disabled=true;reportResult=null;reportsBody.replaceChildren();reportsStatus.textContent="در حال محاسبه گزارش…";
+      try{const token=sessionStorage.getItem("admin_token");if(!token){showLogin();throw Error("دوباره وارد مدیریت شوید.");}const from=document.getElementById("reportFrom").value,to=document.getElementById("reportTo").value;if(from&&to&&from>to)throw Error("تاریخ شروع باید پیش از تاریخ پایان باشد.");const response=await fetch(SUPABASE_URL+"/functions/v1/admin-reports",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+token},body:JSON.stringify({from:from||null,to:to||null}),signal:AbortSignal.timeout(20000)});const result=await response.json();if(response.status===401)showLogin();if(!response.ok||!result.success)throw Error(result.error||"خطا در دریافت گزارش");reportResult=result.report;renderReport(reportResult);reportsExport.disabled=false;reportsStatus.textContent="گزارش از "+(reportResult.from||"ابتدا")+" تا "+(reportResult.to||"اکنون")+"؛ زمان دریافت: "+new Date(reportResult.generated_at).toLocaleString("fa-IR");}catch(e){reportsStatus.textContent=e.message;}finally{reportsBusy=false;reportsLoad.disabled=false;}
+    }
+    function reportCsvCell(value){let text=String(value??"");if(/^[=+@\-\t\r]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}
+    reportsExport.addEventListener("click",()=>{if(!reportResult)return;const r=reportResult,rows=[["گزارش کافی‌نت اشکان",r.from||"ابتدا",r.to||"اکنون","Asia/Tehran"],["گروه","عنوان","تعداد","مبلغ تومان"],["خلاصه","کل مشتریان",r.customers_total,""],["خلاصه","مشتریان ثبت‌شده در بازه",r.customers_registered,""],["خلاصه","سفارش‌های بازه",r.orders_total,r.orders_value],["خلاصه","پیام‌های بازه",r.messages_in_period,""]];for(const [group,items] of [["سفارش",r.orders_by_status],["پرداخت",r.payments_by_status],["خدمت",r.services]])for(const item of items)rows.push([group,item.name||reportLabels[item.status]||item.status||"بدون نام",item.count,item.amount]);const blob=new Blob(["\ufeff"+rows.map(row=>row.map(reportCsvCell).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="ashkan-report.csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+    document.getElementById("reportsForm").addEventListener("submit",event=>{event.preventDefault();loadReport();});document.getElementById("reportsBack").addEventListener("click",()=>{reportsPanel.hidden=true;window.scrollTo({top:0,behavior:"smooth"});});
+    document.querySelector('[data-section="reports"]').addEventListener("click",event=>{event.preventDefault();event.stopImmediatePropagation();reportsPanel.hidden=false;reportsPanel.scrollIntoView({behavior:"smooth"});if(!reportResult)loadReport();},true);
+
+
+    const faqItems=document.getElementById("faqItems"),faqStatus=document.getElementById("faqStatus"),faqMore=document.getElementById("faqMore"),faqForm=document.getElementById("faqForm");
+    let faqMode="list",faqOffset=0,faqBusy=false,faqEditing=null,faqSaving=false;
+    async function faqCall(payload){const token=sessionStorage.getItem("admin_token");if(!token){showLogin();throw Error("دوباره وارد مدیریت شوید.");}const response=await fetch(SUPABASE_URL+"/functions/v1/admin-faq",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+token},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});const r=await response.json();if(response.status===401)showLogin();if(!response.ok||!r.success)throw Error(r.error||"خطا در ارتباط");return r;}
+    function editFaq(item){if(faqSaving)return;faqEditing=item;document.getElementById("faqFormTitle").textContent=item?"ویرایش پاسخ":"پاسخ تازه";document.getElementById("faqQuestion").value=item?.question||"";document.getElementById("faqAnswer").value=item?.answer||"";document.getElementById("faqVariants").value=item?.support_faq_phrases?.map(x=>x.phrase).filter(x=>x!==item.question).join("\n")||"";document.getElementById("faqActive").checked=item?.is_active||false;faqForm.scrollIntoView({behavior:"smooth",block:"nearest"});}
+    async function loadFaq(mode=faqMode,more=false){if(faqBusy)return;faqBusy=true;faqMore.disabled=true;faqStatus.textContent="در حال دریافت…";
+      try{const offset=more?faqOffset:0,r=await faqCall({action:mode,offset});if(!more){faqItems.replaceChildren();faqOffset=0;}faqMode=mode;
+       for(const item of r.items){const box=document.createElement("div");box.className="auto-faq-item";const title=document.createElement("strong"),text=document.createElement("p"),button=document.createElement("button");button.type="button";
+        if(mode==="list"){title.textContent=(item.is_active?"فعال · ":"غیرفعال · ")+item.question;text.textContent=item.answer;button.textContent="ویرایش";button.addEventListener("click",()=>editFaq(item));}
+        else{title.textContent=([item.first_name,item.last_name].filter(Boolean).join(" ")||item.user_id)+" · "+(item.reason==="human_request"?"درخواست مدیر":"بدون پاسخ آماده");text.textContent=item.body;button.textContent="ساخت پاسخ پیشنهادی";button.addEventListener("click",()=>editFaq({question:item.body.slice(0,300),answer:"",is_active:false}));const done=document.createElement("button");done.type="button";done.className="secondary";done.textContent="بررسی شد";done.addEventListener("click",async()=>{done.disabled=true;try{await faqCall({action:"resolve",message_id:item.message_id});box.remove();faqStatus.textContent="این سؤال بررسی‌شده علامت خورد؛ پیام اصلی حفظ شده است.";}catch(e){faqStatus.textContent=e.message;}finally{done.disabled=false;}});box.append(done);}
+        box.prepend(title,text);box.append(button);faqItems.append(box);
+       }faqOffset+=r.items.length;faqMore.hidden=!r.has_more;faqStatus.textContent=faqOffset?"پاسخ‌ها فقط با تأیید و فعال‌کردن شما ارسال می‌شوند.":"موردی برای نمایش نیست.";
+      }catch(e){faqStatus.textContent=e.message;}finally{faqBusy=false;faqMore.disabled=false;}
+    }
+    document.getElementById("faqRefresh").addEventListener("click",()=>loadFaq("list"));document.getElementById("faqUnknown").addEventListener("click",()=>loadFaq("unanswered"));document.getElementById("faqNew").addEventListener("click",()=>editFaq(null));faqMore.addEventListener("click",()=>loadFaq(faqMode,true));
+    faqForm.addEventListener("submit",async event=>{event.preventDefault();if(faqSaving)return;const question=document.getElementById("faqQuestion").value.trim(),answer=document.getElementById("faqAnswer").value.trim(),variants=document.getElementById("faqVariants").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(variants.length>20){faqStatus.textContent="حداکثر ۲۰ عبارت مشابه وارد کنید.";return;}
+      faqSaving=true;for(const el of faqForm.elements)el.disabled=true;try{const r=await faqCall({action:"save",id:faqEditing?.id||null,version:faqEditing?.version||null,question,answer,variants,is_active:document.getElementById("faqActive").checked});faqEditing={...r.faq,support_faq_phrases:variants.map(phrase=>({phrase}))};faqStatus.textContent="پاسخ ذخیره شد؛ "+(r.faq.is_active?"برای پاسخ‌گویی فعال است.":"غیرفعال است.");}catch(e){faqStatus.textContent=e.message+" متن فرم حفظ شده است.";}finally{faqSaving=false;for(const el of faqForm.elements)el.disabled=false;}
     });
 
     checkSession();
