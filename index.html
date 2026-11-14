@@ -591,6 +591,7 @@
 .support-account{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;margin:0}
 .support-account dd{margin:0;overflow-wrap:anywhere}
 .support-box button{cursor:pointer;font:inherit;font-size:13px;border:1px solid #c8ddd2;border-radius:10px;padding:10px 16px;background:#168b55;color:#fff;line-height:1.7;transition:background .15s}.support-box button:hover{background:#104b38}.support-box button.secondary{background:#fff;color:#104b38}.support-box button.support-compose{background:#f3f8f5;color:#183d32;min-height:auto}.support-toolbar .back-button{margin:0;width:auto}.support-box button:disabled{cursor:wait;opacity:.6}
+.auto-human{display:flex;gap:8px;align-items:center;font-size:13px;margin:12px 0}.auto-human input{width:auto;accent-color:#168b55}
 </style>
 </head>
 <body>
@@ -654,7 +655,7 @@
         <button id="supportOlder" class="back-button hidden" type="button">پیام‌های قدیمی‌تر</button>
         <div id="supportHistory" class="support-history" role="log" aria-label="تاریخچه گفت‌وگو"></div>
         <div id="supportStatus" class="support-status" role="status" aria-live="polite"></div>
-        <form id="supportForm"><label for="supportText">متن پیام</label><textarea id="supportText" class="support-compose" maxlength="2000" required placeholder="پیامتان را برای مدیریت بنویسید…"></textarea><button id="supportSend" class="primary" type="submit">ارسال پیام</button></form>
+        <form id="supportForm"><label for="supportText">متن پیام</label><textarea id="supportText" class="support-compose" maxlength="2000" required placeholder="پیامتان را برای مدیریت بنویسید…"></textarea><label class="auto-human"><input id="supportHuman" type="checkbox"> می‌خواهم مدیر پاسخ بدهد</label><button id="supportSend" class="primary" type="submit">ارسال پیام</button></form>
       </div>
       <button id="supportBack" class="back-button" type="button">بازگشت به صفحه اصلی</button>
     </section>
@@ -1330,7 +1331,7 @@
       container.replaceChildren();
       for(const m of messages){
         const row=document.createElement("div");row.className="support-message"+(m.sender===ownSender?" mine":"");
-        const label=document.createElement("strong");label.textContent=m.sender==="admin"?"مدیریت":"مشتری";
+        const label=document.createElement("strong");label.textContent=m.auto_reply_to?"پاسخ‌گوی خودکار":m.sender==="admin"?"مدیریت":"مشتری";
         const text=document.createElement("div");text.textContent=m.body;
         const date=document.createElement("small");date.textContent=supportDate(m.created_at);
         row.append(label,text,date);container.append(row);
@@ -1366,9 +1367,9 @@
     supportOlder.addEventListener("click",()=>loadSupport(true));
     document.getElementById("supportForm").addEventListener("submit",async event=>{
       event.preventDefault();if(supportSending||supportLoading)return;const text=supportText.value.trim();if(!text||text.length>2000)return;
-      if(!supportPending||supportPending.text!==text)supportPending={text,request_id:crypto.randomUUID()};
+      const human=document.getElementById("supportHuman").checked;if(!supportPending||supportPending.text!==text||supportPending.request_human!==human)supportPending={text,request_human:human,request_id:crypto.randomUUID()};
       supportSending=true;supportSend.disabled=true;supportText.disabled=true;supportStatus.textContent="در حال ارسال…";
-      try{const result=await supportCall({action:"send",...supportPending});supportRows=supportMerge(supportRows,[result.message]);supportRender(supportHistory,supportRows,"customer");supportHistory.scrollTop=supportHistory.scrollHeight;supportText.value="";supportPending=null;supportStatus.textContent="پیام شما ارسال شد.";}catch(e){supportStatus.textContent=e.message+" متن پیام حفظ شده؛ می‌توانید دوباره ارسال کنید.";}finally{supportSending=false;supportSend.disabled=false;supportText.disabled=false;}
+      try{const result=await supportCall({action:"send",...supportPending});supportRows=supportMerge(supportRows,[result.message,...(result.auto_reply?[result.auto_reply]:[])]);supportRender(supportHistory,supportRows,"customer");supportHistory.scrollTop=supportHistory.scrollHeight;supportText.value="";supportPending=null;supportStatus.textContent=result.auto_reply?"پاسخ خودکار دریافت شد؛ در صورت نیاز می‌توانید پاسخ مدیر را بخواهید.":"پیام شما ارسال شد و برای پاسخ‌گویی مدیر در دسترس است.";}catch(e){supportStatus.textContent=e.message+" متن پیام حفظ شده؛ می‌توانید دوباره ارسال کنید.";}finally{supportSending=false;supportSend.disabled=false;supportText.disabled=false;}
     });
   </script>
 </body>
