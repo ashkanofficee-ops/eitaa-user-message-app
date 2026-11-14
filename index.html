@@ -596,20 +596,25 @@
 /* Compact customer conversation; other screens retain their existing layout. */
 #supportScreen{display:flex;flex-direction:column;height:min(720px,calc(100vh - 54px));height:min(720px,calc(100dvh - 54px));min-height:460px}
 #supportScreen>.header{flex-shrink:0;padding:12px 16px}
-#supportScreen>.header h1{font-size:18px;margin-bottom:4px}
-#supportScreen>.header p{font-size:12px;line-height:1.7}
+#supportScreen>.header h1{font-size:16px;margin-bottom:4px}
+#supportScreen>.header p{font-size:10px;line-height:1.7}
 #supportScreen>.support-box{display:flex;flex-direction:column;flex:1;min-height:0;padding:12px;margin:10px 0 0}
-#supportScreen .support-toolbar{flex-shrink:0;gap:6px;margin-bottom:6px;font-size:13px}
+#supportScreen .support-toolbar{flex-shrink:0;gap:6px;margin-bottom:6px;font-size:11px}
 #supportScreen .support-history{flex:1;min-height:0;max-height:none;gap:8px;padding:6px;border-radius:12px;background:#eff8f1}
-#supportScreen .support-message{flex-shrink:0;padding:9px 11px}
-#supportScreen .support-message small{margin-top:4px}
-#supportScreen .support-status{flex-shrink:0;min-height:20px;margin:4px 0;font-size:12px;line-height:1.6}
-#supportForm{flex-shrink:0;font-size:13px}
-#supportScreen .support-compose{display:block;height:64px;min-height:64px;max-height:120px;margin:6px 0;padding:9px;resize:vertical}
-#supportScreen .auto-human{margin:6px 0;line-height:1.7}
-#supportScreen #supportSend{min-height:44px;padding:9px 14px}
+#supportScreen .support-message{flex-shrink:0;padding:9px 11px;font-size:14px}
+#supportScreen .support-message small{margin-top:4px;font-size:9px}
+#supportScreen .support-status{flex-shrink:0;min-height:0;margin:4px 0;font-size:10px;line-height:1.6}
+#supportScreen .support-status:empty{display:none}
+#supportForm{flex-shrink:0;font-size:11px}
+#supportScreen .support-input-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+#supportScreen .support-box button{font-size:11px}
+#supportScreen .support-compose{display:block;flex:1;min-width:0;width:auto;height:44px;min-height:44px;max-height:44px;margin:0;padding:11px 10px;line-height:20px;resize:none;overflow-y:auto}
+#supportScreen .auto-human{margin:6px 0;line-height:1.7;font-size:11px}
+#supportScreen #supportSend{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%}
+#supportSend svg{display:block;width:21px;height:21px}
+#supportScreen .support-compose:focus-visible,#supportScreen #supportSend:focus-visible{outline:2px solid #168b55;outline-offset:2px}
 #supportScreen #supportOlder{flex-shrink:0;margin:0 0 6px;padding:7px}
-#supportBack{flex-shrink:0;margin-top:8px;padding:10px;min-height:44px}
+#supportBack{flex-shrink:0;margin-top:8px;padding:10px;min-height:44px;font-size:12px}
 
 #supportScreen .support-message:not(.mine){background:#fff}
 #supportStatus.is-typing{display:flex;align-items:center;gap:5px;color:#168b55}
@@ -681,7 +686,7 @@
         <button id="supportOlder" class="back-button hidden" type="button">پیام‌های قدیمی‌تر</button>
         <div id="supportHistory" class="support-history" role="log" aria-label="تاریخچه گفت‌وگو"></div>
         <div id="supportStatus" class="support-status" role="status" aria-live="polite"></div>
-        <form id="supportForm"><label for="supportText">متن پیام</label><textarea id="supportText" class="support-compose" maxlength="2000" required placeholder="پیامتان را برای مدیریت بنویسید…"></textarea><label class="auto-human"><input id="supportHuman" type="checkbox"> می‌خواهم مدیر پاسخ بدهد</label><button id="supportSend" class="primary" type="submit">ارسال پیام</button></form>
+        <form id="supportForm"><div class="support-input-row"><textarea id="supportText" class="support-compose" rows="1" enterkeyhint="send" aria-label="پیام شما" maxlength="2000" required placeholder="پیامتان را برای مدیریت بنویسید…"></textarea><button id="supportSend" class="primary" type="submit" aria-label="ارسال پیام" title="ارسال پیام"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><label class="auto-human"><input id="supportHuman" type="checkbox"> می‌خواهم مدیر پاسخ بدهد</label></form>
       </div>
       <button id="supportBack" class="back-button" type="button">بازگشت به صفحه اصلی</button>
     </section>
@@ -1382,7 +1387,7 @@
       if(supportLoading||supportSending)return;supportLoading=true;supportSend.disabled=true;supportOlder.disabled=true;supportStatus.textContent="در حال دریافت پیام‌ها…";
       try{const result=await supportCall({action:"list",...(older&&supportRows.length?{before:String(supportRows[0].id)}:{})});
         supportRows=older?supportMerge(supportRows,result.messages):result.messages;supportRender(supportHistory,supportRows,"customer");supportOlder.classList.toggle("hidden",!result.has_more);
-        supportStatus.textContent=supportRows.length?"پاسخ‌های مدیریت در همین صفحه نمایش داده می‌شوند.":"هنوز پیامی ندارید. اولین پیامتان را بنویسید.";if(!older)supportHistory.scrollTop=supportHistory.scrollHeight;
+        supportStatus.textContent=supportRows.length?"":"هنوز پیامی ندارید. اولین پیامتان را بنویسید.";if(!older)supportHistory.scrollTop=supportHistory.scrollHeight;
       }catch(e){supportStatus.textContent=e.message;}finally{supportLoading=false;supportSend.disabled=false;supportOlder.disabled=false;}
     }
     document.getElementById("accountButton").addEventListener("click",()=>{homeScreen.classList.add("hidden");accountScreen.classList.remove("hidden");loadAccount();});
@@ -1391,6 +1396,11 @@
     document.getElementById("accountRefresh").addEventListener("click",loadAccount);
     document.getElementById("supportRefresh").addEventListener("click",()=>loadSupport());
     supportOlder.addEventListener("click",()=>loadSupport(true));
+    supportText.addEventListener("keydown",event=>{
+      if(event.key!=="Enter"||event.shiftKey||event.isComposing||event.keyCode===229)return;
+      event.preventDefault();
+      if(!event.repeat&&!supportSending&&!supportLoading)document.getElementById("supportForm").requestSubmit();
+    });
     document.getElementById("supportForm").addEventListener("submit",async event=>{
       event.preventDefault();if(supportSending||supportLoading)return;const text=supportText.value.trim();if(!text||text.length>2000)return;
       const human=document.getElementById("supportHuman").checked;if(!supportPending||supportPending.text!==text||supportPending.request_human!==human)supportPending={text,request_human:human,request_id:crypto.randomUUID()};
