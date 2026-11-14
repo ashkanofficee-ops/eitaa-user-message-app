@@ -623,6 +623,21 @@
 #supportStatus.is-typing::after{animation-delay:.3s}
 @keyframes supportTypingDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-3px);opacity:1}}
 @media (prefers-reduced-motion:reduce){#supportStatus.is-typing::before,#supportStatus.is-typing::after,#supportStatus.is-typing .typing-dot{animation:none;opacity:1}}
+
+/* Independent order-list scrolling; keep navigation visible. */
+#myOrdersScreen{display:flex;flex-direction:column;height:calc(100vh - 54px);height:calc(100dvh - 54px);min-height:0}
+#myOrdersScreen>.header{flex-shrink:0;padding:14px 16px}
+#myOrdersScreen>.header h1{font-size:18px;margin-bottom:4px}
+#myOrdersScreen>.header p{font-size:12px;line-height:1.7}
+#myOrdersScreen>.services-heading{flex-shrink:0;margin:12px 2px 8px}
+#myOrdersScreen>.services-heading h2{font-size:16px;margin-bottom:4px}
+#myOrdersScreen>.services-heading p{font-size:12px;line-height:1.7}
+#myOrdersStatus{flex-shrink:0;margin:6px 2px;font-size:12px;line-height:1.8}
+#myOrdersList{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-top:0;padding:8px;border:1px solid #dce8e3;border-radius:15px;background:#eef5f2}
+#myOrdersList>.tracking-item{flex-shrink:0}
+#myOrdersList:focus-visible{outline:2px solid #168b55;outline-offset:2px}
+#myOrdersBackButton{flex-shrink:0;margin-top:10px;min-height:44px}
+#myOrdersScreen>.footer{flex-shrink:0;margin-top:8px}
 </style>
 </head>
 <body>
@@ -725,7 +740,7 @@
       </div>
 
       <div id="myOrdersStatus" class="services-status" aria-live="polite">در حال دریافت سفارش‌ها...</div>
-      <div id="myOrdersList" class="tracking-list"></div>
+      <div id="myOrdersList" class="tracking-list" role="region" aria-label="فهرست سفارش‌های من" tabindex="0"></div>
 
       <button id="myOrdersBackButton" class="back-button" type="button">
         بازگشت به صفحه اصلی
