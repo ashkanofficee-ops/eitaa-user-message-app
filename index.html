@@ -596,25 +596,25 @@
 /* Compact customer conversation; other screens retain their existing layout. */
 #supportScreen{display:flex;flex-direction:column;height:min(720px,calc(100vh - 54px));height:min(720px,calc(100dvh - 54px));min-height:460px}
 #supportScreen>.header{flex-shrink:0;padding:12px 16px}
-#supportScreen>.header h1{font-size:16px;margin-bottom:4px}
-#supportScreen>.header p{font-size:10px;line-height:1.7}
-#supportScreen>.support-box{display:flex;flex-direction:column;flex:1;min-height:0;padding:12px;margin:10px 0 0}
+#supportScreen>.header h1{font-size:15px;margin-bottom:4px}
+#supportScreen>.header p{font-size:9px;line-height:1.7}
+#supportScreen>.support-box{display:flex;flex-direction:column;flex:1;min-height:0;padding:12px;margin:10px 0 0;border-color:#168b55}
 #supportScreen .support-toolbar{flex-shrink:0;gap:6px;margin-bottom:6px;font-size:11px}
 #supportScreen .support-history{flex:1;min-height:0;max-height:none;gap:8px;padding:6px;border-radius:12px;background:#eff8f1}
-#supportScreen .support-message{flex-shrink:0;padding:9px 11px;font-size:14px}
-#supportScreen .support-message small{margin-top:4px;font-size:9px}
-#supportScreen .support-status{flex-shrink:0;min-height:0;margin:4px 0;font-size:10px;line-height:1.6}
+#supportScreen .support-message{flex-shrink:0;padding:9px 11px;font-size:13px}
+#supportScreen .support-message small{margin-top:4px;font-size:8px}
+#supportScreen .support-status{flex-shrink:0;min-height:0;margin:4px 0;font-size:9px;line-height:1.6}
 #supportScreen .support-status:empty{display:none}
-#supportForm{flex-shrink:0;font-size:11px}
+#supportForm{flex-shrink:0;font-size:10px}
 #supportScreen .support-input-row{display:flex;align-items:center;gap:8px;margin-top:6px}
-#supportScreen .support-box button{font-size:11px}
+#supportScreen .support-box button{font-size:10px}
 #supportScreen .support-compose{display:block;flex:1;min-width:0;width:auto;height:44px;min-height:44px;max-height:44px;margin:0;padding:11px 10px;line-height:20px;resize:none;overflow-y:auto}
-#supportScreen .auto-human{margin:6px 0;line-height:1.7;font-size:11px}
+#supportScreen .auto-human{margin:6px 0;line-height:1.7;font-size:10px}
 #supportScreen #supportSend{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%}
 #supportSend svg{display:block;width:21px;height:21px}
 #supportScreen .support-compose:focus-visible,#supportScreen #supportSend:focus-visible{outline:2px solid #168b55;outline-offset:2px}
 #supportScreen #supportOlder{flex-shrink:0;margin:0 0 6px;padding:7px}
-#supportBack{flex-shrink:0;margin-top:8px;padding:10px;min-height:44px;font-size:12px}
+#supportBack{flex-shrink:0;margin-top:8px;padding:10px;min-height:44px;font-size:11px}
 
 #supportScreen .support-message:not(.mine){background:#fff}
 #supportStatus.is-typing{display:flex;align-items:center;gap:5px;color:#168b55}
@@ -682,7 +682,6 @@
     <section id="supportScreen" class="hidden">
       <header class="header"><h1>گفت‌وگو با ما</h1><p>ارتباط خصوصی با مدیریت کافی‌نت اشکان</p></header>
       <div class="support-box">
-        <div class="support-toolbar"><strong>پیام‌های شما و مدیریت</strong><button id="supportRefresh" class="back-button" type="button">به‌روزرسانی</button></div>
         <button id="supportOlder" class="back-button hidden" type="button">پیام‌های قدیمی‌تر</button>
         <div id="supportHistory" class="support-history" role="log" aria-label="تاریخچه گفت‌وگو"></div>
         <div id="supportStatus" class="support-status" role="status" aria-live="polite"></div>
@@ -1390,11 +1389,28 @@
         supportStatus.textContent=supportRows.length?"":"هنوز پیامی ندارید. اولین پیامتان را بنویسید.";if(!older)supportHistory.scrollTop=supportHistory.scrollHeight;
       }catch(e){supportStatus.textContent=e.message;}finally{supportLoading=false;supportSend.disabled=false;supportOlder.disabled=false;}
     }
+    let supportQuietLoading=false;
+    async function refreshSupportQuietly(){
+      if(supportQuietLoading||supportLoading||supportSending||supportScreen.classList.contains("hidden")||document.visibilityState!=="visible")return;
+      supportQuietLoading=true;
+      try{
+        const result=await supportCall({action:"list"});
+        if(supportLoading||supportSending||supportScreen.classList.contains("hidden")||document.visibilityState!=="visible")return;
+        const known=new Set(supportRows.map(m=>String(m.id)));
+        if(!result.messages.some(m=>!known.has(String(m.id))))return;
+        const atBottom=supportHistory.scrollHeight-supportHistory.clientHeight-supportHistory.scrollTop<40,previousTop=supportHistory.scrollTop;
+        supportRows=supportMerge(supportRows,result.messages);supportRender(supportHistory,supportRows,"customer");
+        supportHistory.scrollTop=atBottom?supportHistory.scrollHeight:previousTop;
+        if(supportStatus.textContent==="هنوز پیامی ندارید. اولین پیامتان را بنویسید.")supportStatus.textContent="";
+      }catch{/* Keep the current conversation and draft on transient refresh errors. */}
+      finally{supportQuietLoading=false;}
+    }
+    setInterval(refreshSupportQuietly,15000);
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshSupportQuietly();});
     document.getElementById("accountButton").addEventListener("click",()=>{homeScreen.classList.add("hidden");accountScreen.classList.remove("hidden");loadAccount();});
     document.getElementById("supportButton").addEventListener("click",()=>{homeScreen.classList.add("hidden");supportScreen.classList.remove("hidden");loadSupport();});
     for(const [button,screen] of [["accountBack",accountScreen],["supportBack",supportScreen]])document.getElementById(button).addEventListener("click",()=>{screen.classList.add("hidden");homeScreen.classList.remove("hidden");});
     document.getElementById("accountRefresh").addEventListener("click",loadAccount);
-    document.getElementById("supportRefresh").addEventListener("click",()=>loadSupport());
     supportOlder.addEventListener("click",()=>loadSupport(true));
     supportText.addEventListener("keydown",event=>{
       if(event.key!=="Enter"||event.shiftKey||event.isComposing||event.keyCode===229)return;
