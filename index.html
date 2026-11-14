@@ -592,6 +592,24 @@
 .support-account dd{margin:0;overflow-wrap:anywhere}
 .support-box button{cursor:pointer;font:inherit;font-size:13px;border:1px solid #c8ddd2;border-radius:10px;padding:10px 16px;background:#168b55;color:#fff;line-height:1.7;transition:background .15s}.support-box button:hover{background:#104b38}.support-box button.secondary{background:#fff;color:#104b38}.support-box button.support-compose{background:#f3f8f5;color:#183d32;min-height:auto}.support-toolbar .back-button{margin:0;width:auto}.support-box button:disabled{cursor:wait;opacity:.6}
 .auto-human{display:flex;gap:8px;align-items:center;font-size:13px;margin:12px 0}.auto-human input{width:auto;accent-color:#168b55}
+
+/* Compact customer conversation; other screens retain their existing layout. */
+#supportScreen{display:flex;flex-direction:column;height:min(720px,calc(100vh - 54px));height:min(720px,calc(100dvh - 54px));min-height:460px}
+#supportScreen>.header{flex-shrink:0;padding:12px 16px}
+#supportScreen>.header h1{font-size:18px;margin-bottom:4px}
+#supportScreen>.header p{font-size:12px;line-height:1.7}
+#supportScreen>.support-box{display:flex;flex-direction:column;flex:1;min-height:0;padding:12px;margin:10px 0 0}
+#supportScreen .support-toolbar{flex-shrink:0;gap:6px;margin-bottom:6px;font-size:13px}
+#supportScreen .support-history{flex:1;min-height:0;max-height:none;gap:8px;padding:4px 2px}
+#supportScreen .support-message{flex-shrink:0;padding:9px 11px}
+#supportScreen .support-message small{margin-top:4px}
+#supportScreen .support-status{flex-shrink:0;min-height:20px;margin:4px 0;font-size:12px;line-height:1.6}
+#supportForm{flex-shrink:0;font-size:13px}
+#supportScreen .support-compose{display:block;height:64px;min-height:64px;max-height:120px;margin:6px 0;padding:9px;resize:vertical}
+#supportScreen .auto-human{margin:6px 0;line-height:1.7}
+#supportScreen #supportSend{min-height:44px;padding:9px 14px}
+#supportScreen #supportOlder{flex-shrink:0;margin:0 0 6px;padding:7px}
+#supportBack{flex-shrink:0;margin-top:8px;padding:10px;min-height:44px}
 </style>
 </head>
 <body>
@@ -1331,10 +1349,10 @@
       container.replaceChildren();
       for(const m of messages){
         const row=document.createElement("div");row.className="support-message"+(m.sender===ownSender?" mine":"");
-        const label=document.createElement("strong");label.textContent=m.auto_reply_to?"پاسخ‌گوی خودکار":m.sender==="admin"?"مدیریت":"مشتری";
+        if(m.sender==="admin"&&!m.auto_reply_to){const label=document.createElement("strong");label.textContent="مدیریت";row.append(label);}
         const text=document.createElement("div");text.textContent=m.body;
         const date=document.createElement("small");date.textContent=supportDate(m.created_at);
-        row.append(label,text,date);container.append(row);
+        row.append(text,date);container.append(row);
       }
     }
     function supportMerge(oldRows,newRows){const rows=new Map(oldRows.map(m=>[String(m.id),m]));for(const m of newRows)rows.set(String(m.id),m);return [...rows.values()].sort((a,b)=>BigInt(a.id)<BigInt(b.id)?-1:BigInt(a.id)>BigInt(b.id)?1:0);}
