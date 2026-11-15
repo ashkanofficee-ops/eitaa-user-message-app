@@ -666,6 +666,20 @@ body.emerald-navigation #myOrdersScreen>.footer{display:none}
 @media(max-width:360px){.page{padding-left:12px;padding-right:12px}.emerald-identity h1{font-size:14px}.emerald-topbar>span{font-size:9px}.emerald-banner-controls button{min-height:40px}.emerald-pause{min-width:58px!important}#homeScreen .menu-card{padding:14px 11px;min-height:114px}}
 @media(prefers-reduced-motion:reduce){#homeScreen .menu-card,.emerald-dots button:after{transition:none}}
 
+/* Approved visual cleanup: no application or navigation logic changes. */
+body.emerald-home{background:#dceee1}
+body.emerald-home #emeraldTopbar,#homeScreen>.welcome,#homeScreen>.section-note,#homeScreen>.footer,#emeraldBannerLabel,#emeraldPrevious,#emeraldNext,#emeraldPause{display:none!important}
+.emerald-carousel{position:relative;margin-bottom:16px}
+.emerald-banner-frame{position:relative}
+.emerald-banner-controls{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);margin:0;display:flex;justify-content:center;gap:0;padding:0;z-index:2}
+.emerald-dots{padding:0 5px;border-radius:22px;background:rgba(12,33,26,.6)}
+.emerald-dots button{min-height:30px;width:36px;min-width:36px;border:0;background:transparent}
+.emerald-dots button:after{background:#b4b7a6;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.emerald-dots button[aria-pressed=true]:after{background:#f6f0df}
+.emerald-dots button:focus-visible{outline:2px solid #f6f0df;outline-offset:-2px}
+#homeScreen .menu-card{border:1px solid #bc9a52}
+#homeScreen .menu-card:hover{border-color:#a38037}
+
 </style>
 </head>
 <body>
@@ -1542,5 +1556,7 @@ body.emerald-navigation #myOrdersScreen>.footer{display:none}
 })();
 
 </script>
+
+<script id="emeraldHomeScope">(()=>{const home=document.getElementById('homeScreen');function sync(){document.body.classList.toggle('emerald-home',!home.classList.contains('hidden'));}new MutationObserver(sync).observe(home,{attributes:true,attributeFilter:['class']});sync();})();</script>
 </body>
 </html>
