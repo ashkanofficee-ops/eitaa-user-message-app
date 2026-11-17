@@ -953,55 +953,83 @@ body.emerald-home #emeraldTopbar,#homeScreen>.welcome,#homeScreen>.section-note,
       app.expand();
     }
 
+    function registrationStorageKey() {
+      try {
+        const user = JSON.parse(new URLSearchParams(app?.initData || "").get("user") || "null");
+        const id = String(user?.id || "");
+        return /^\d+$/.test(id) && id !== "0" ? `ashkan:registered:v1:${id}` : null;
+      } catch { return null; }
+    }
+
+    function hasPreviousRegistration() {
+      if (!app?.initData) return false;
+      try {
+        const user = JSON.parse(new URLSearchParams(app.initData).get("user") || "null");
+        if (user?.allows_write_to_pm === true) return true;
+      } catch {}
+      try {
+        const key = registrationStorageKey();
+        return key !== null && localStorage.getItem(key) === "1";
+      } catch { return false; }
+    }
+
+    function rememberRegistration() {
+      try {
+        const key = registrationStorageKey();
+        if (key) localStorage.setItem(key, "1");
+      } catch {}
+    }
+
+    async function enterRegisteredCustomer(automatic = false) {
+      button.disabled = true;
+      status.innerHTML = 'در حال ورود به مینی‌اپ کافی‌نت اشکان هستیم...<div class="registration-progress" role="progressbar" aria-label="در حال ورود"><span></span></div>';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/register-subscriber", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData: app.initData }),
+          signal: controller.signal
+        });
+        const responseText = await response.text();
+        let result = {};
+        try { result = JSON.parse(responseText); } catch {}
+        if (response.ok && result.success) {
+          rememberRegistration();
+          registerScreen.classList.add("hidden");
+          homeScreen.classList.remove("hidden");
+        } else {
+          status.textContent = automatic ? "" :
+            `ثبت اطلاعات انجام نشد. کد پاسخ: ${response.status}؛ علت: ${result.error || responseText || "پاسخ خالی از سرور"}`;
+        }
+      } catch {
+        status.textContent = automatic ? "" : "خطا در ارتباط با سرور.";
+      } finally {
+        clearTimeout(timeout);
+        button.disabled = false;
+      }
+    }
+
     button.addEventListener("click", function () {
       if (!app) {
         status.textContent = "لطفاً برنامه را از داخل ایتا باز کنید.";
         return;
       }
-
+      if (button.disabled) return;
       button.disabled = true;
-
-      app.requestWriteAccess(async function (allowed) {
+      app.requestWriteAccess(function (allowed) {
         if (!allowed) {
           status.textContent = "اجازه‌ای صادر نشد.";
           button.disabled = false;
           return;
         }
-
-        status.innerHTML = 'در حال ورود به مینی‌اپ کافی‌نت اشکان هستیم...<div class="registration-progress" role="progressbar" aria-label="در حال ورود"><span></span></div>';
-
-        try {
-          const response = await fetch("https://iusqlowrbgihwctfqryt.supabase.co/functions/v1/register-subscriber", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              initData: app.initData
-            })
-          });
-
-          const responseText = await response.text();
-          let result = {};
-
-          try {
-            result = JSON.parse(responseText);
-          } catch {}
-
-          if (response.ok && result.success) {
-            registerScreen.classList.add("hidden");
-            homeScreen.classList.remove("hidden");
-          } else {
-            status.textContent =
-              `ثبت اطلاعات انجام نشد. کد پاسخ: ${response.status}؛ علت: ${result.error || responseText || "پاسخ خالی از سرور"}`;
-            button.disabled = false;
-          }
-        } catch (error) {
-          status.textContent = "خطا در ارتباط با سرور.";
-          button.disabled = false;
-        }
+        void enterRegisteredCustomer();
       });
     });
+
+    if (hasPreviousRegistration()) void enterRegisteredCustomer(true);
+
 
     const orderStatusLabels = {
       pending: "در انتظار بررسی",
